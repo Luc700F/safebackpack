@@ -1,20 +1,31 @@
 /**
  * Server-side configuration.
  *
- * Reads once, validates loudly, and never hands a raw `process.env` around.
- * A missing secret fails at the first call with a message naming the variable,
- * rather than surfacing later as a confusing runtime error.
+ * Grouped by concern rather than read as one block, so a part of the app that
+ * needs no database can start without one — while anything that does need it
+ * still fails immediately and by name, instead of surfacing later as a
+ * confusing runtime error.
  *
  * Secrets are read on the server only. Anything the browser may see must be
- * prefixed `NEXT_PUBLIC_` and belongs in `publicConfig` below.
+ * prefixed `NEXT_PUBLIC_` and passed in deliberately.
  */
 
-export interface ServerConfig {
-  resendApiKey: string;
-  emailFrom: string;
-  recognitionSecret: string;
-  databaseUrl: string;
+export type EnvSource = Record<string, string | undefined>;
+
+export interface SigningConfig {
+  /** Signs recognition tokens and keys every hash of personal data. */
+  secret: string;
+  /** The site's own origin, used to build links inside emails. */
   siteUrl: string;
+}
+
+export interface EmailConfig {
+  apiKey: string;
+  from: string;
+}
+
+export interface DatabaseConfig {
+  url: string;
 }
 
 export class MissingConfigError extends Error {
@@ -30,10 +41,7 @@ export class MissingConfigError extends Error {
   }
 }
 
-function required(
-  source: Record<string, string | undefined>,
-  variable: string,
-): string {
+function required(source: EnvSource, variable: string): string {
   const value = source[variable]?.trim();
   if (!value) {
     throw new MissingConfigError(variable);
@@ -42,40 +50,61 @@ function required(
   return value;
 }
 
-/**
- * Builds the server configuration. `source` is injectable so tests never have
- * to mutate the real environment.
- */
-export function readServerConfig(
-  source: Record<string, string | undefined> = process.env,
-): ServerConfig {
+function assertServerSide(): void {
   if (typeof window !== 'undefined') {
     throw new Error('Server configuration must never be read in the browser');
   }
+}
+
+export function readSigningConfig(
+  source: EnvSource = process.env,
+): SigningConfig {
+  assertServerSide();
 
   return {
-    resendApiKey: required(source, 'RESEND_API_KEY'),
-    emailFrom: required(source, 'EMAIL_FROM'),
-    recognitionSecret: required(source, 'RECOGNITION_SECRET'),
-    databaseUrl: required(source, 'DATABASE_URL'),
+    secret: required(source, 'RECOGNITION_SECRET'),
     siteUrl: required(source, 'NEXT_PUBLIC_SITE_URL'),
   };
 }
 
-/**
- * Reports every missing variable at once, so setting the project up is one
- * round trip rather than five.
- */
-export function missingServerConfig(
-  source: Record<string, string | undefined> = process.env,
-): string[] {
-  const variables = [
-    'RESEND_API_KEY',
-    'EMAIL_FROM',
-    'RECOGNITION_SECRET',
-    'DATABASE_URL',
-    'NEXT_PUBLIC_SITE_URL',
-  ];
+export function readEmailConfig(source: EnvSource = process.env): EmailConfig {
+  assertServerSide();
 
-  return variables.filter((variable) => !source[variable]?.trim());
+  return {
+    apiKey: required(source, 'RESEND_API_KEY'),
+    from: required(source, 'EMAIL_FROM'),
+  };
+}
+
+export function readDatabaseConfig(
+  source: EnvSource = process.env,
+): DatabaseConfig {
+  assertServerSide();
+
+  return { url: required(source, 'DATABASE_URL') };
+}
+
+/** True when email can actually be delivered rather than only recorded. */
+export function hasEmailConfig(source: EnvSource = process.env): boolean {
+  return Boolean(source.RESEND_API_KEY?.trim() && source.EMAIL_FROM?.trim());
+}
+
+export function hasDatabaseConfig(source: EnvSource = process.env): boolean {
+  return Boolean(source.DATABASE_URL?.trim());
+}
+
+const ALL_VARIABLES = [
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
+  'RECOGNITION_SECRET',
+  'DATABASE_URL',
+  'NEXT_PUBLIC_SITE_URL',
+];
+
+/**
+ * Every variable that is absent, so setting the project up is one round trip
+ * rather than five.
+ */
+export function missingServerConfig(source: EnvSource = process.env): string[] {
+  return ALL_VARIABLES.filter((variable) => !source[variable]?.trim());
 }

@@ -133,6 +133,28 @@
   color: var(--color-text-muted);
 }
 
+.itemOpen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: start;
+  color: inherit;
+  font: inherit;
+}
+
+.itemOpen:hover .itemCategory {
+  color: var(--color-accent);
+}
+
+.itemWhere {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
 .itemDescription {
   margin: 0;
 }

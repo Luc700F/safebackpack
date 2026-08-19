@@ -40,7 +40,8 @@ export type ConfirmationCheck =
 
 export interface ConfirmableReport {
   status: ReportStatus;
-  reporterEmailHash: string;
+  /** Null on an anonymised report, which is no longer confirmable anyway. */
+  reporterEmailHash: string | null;
 }
 
 /**

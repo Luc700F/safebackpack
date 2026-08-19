@@ -41,6 +41,12 @@ export const REPORTS_PER_IP_PER_DAY: RateLimitRule = {
   windowMs: DAY_MS,
 };
 
+/** Confirmations one person may give per day, across all reports. */
+export const CONFIRMATIONS_PER_PERSON_PER_DAY: RateLimitRule = {
+  limit: 20,
+  windowMs: DAY_MS,
+};
+
 /** Verification emails one address may trigger per hour. */
 export const VERIFICATIONS_PER_EMAIL_PER_HOUR: RateLimitRule = {
   limit: 5,

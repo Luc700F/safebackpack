@@ -21,6 +21,7 @@ import type {
   StoredReport,
 } from './repository';
 import type { AnonymisedReport } from './anonymisation';
+import type { Confirmation, ConfirmationKind } from './confirmations';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
 
@@ -220,6 +221,75 @@ export class PostgresReportRepository implements ReportRepository {
     `;
 
     return rows.map((row) => this.toReport(row));
+  }
+
+  async findConfirmations(reportId: string): Promise<Confirmation[]> {
+    if (!isUuid(reportId)) return [];
+
+    const rows = await this.sql<
+      {
+        report_id: string;
+        kind: ConfirmationKind;
+        confirmer_email_hash: string;
+        created_at: Date;
+      }[]
+    >`
+      select report_id, kind, confirmer_email_hash, created_at
+      from report_confirmations
+      where report_id = ${reportId}
+      order by created_at
+    `;
+
+    return rows.map((row) => ({
+      reportId: row.report_id,
+      kind: row.kind,
+      confirmerEmailHash: row.confirmer_email_hash,
+      createdAt: row.created_at,
+    }));
+  }
+
+  async addConfirmation(confirmation: Confirmation): Promise<void> {
+    if (!isUuid(confirmation.reportId)) {
+      throw new Error(`No such report: ${confirmation.reportId}`);
+    }
+
+    // The unique constraint and the self-confirmation trigger both live in the
+    // database, so a race between two requests cannot produce a second vote.
+    await this.sql`
+      insert into report_confirmations (
+        report_id, kind, confirmer_email_hash, created_at
+      ) values (
+        ${confirmation.reportId}, ${confirmation.kind},
+        ${confirmation.confirmerEmailHash}, ${confirmation.createdAt}
+      )
+    `;
+  }
+
+  async applyConfirmationOutcome(
+    reportId: string,
+    outcome: {
+      confirmationCount: number;
+      retirementCount: number;
+      expiresAt: Date;
+      retired: boolean;
+    },
+  ): Promise<void> {
+    if (!isUuid(reportId)) {
+      throw new Error(`No such report: ${reportId}`);
+    }
+
+    const result = await this.sql`
+      update reports set
+        confirmation_count = ${outcome.confirmationCount},
+        retirement_count = ${outcome.retirementCount},
+        expires_at = ${outcome.expiresAt},
+        status = ${outcome.retired ? 'retired' : 'published'}
+      where id = ${reportId}
+    `;
+
+    if (result.count === 0) {
+      throw new Error(`No such report: ${reportId}`);
+    }
   }
 
   async findDueForAnonymisation(

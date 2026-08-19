@@ -330,3 +330,158 @@ describe('verify', () => {
     expect(outcome.status).toBe('invalid_token');
   });
 });
+
+describe('confirm', () => {
+  const reporterHash = hashEmail('traveller@example.com', SECRET);
+  const otherHash = hashEmail('someone.else@example.com', SECRET);
+
+  async function publishedReport(): Promise<string> {
+    await service().submit(submission(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    const outcome = await service().verify(url.searchParams.get('token')!);
+    return outcome.status === 'published' ? outcome.reportId : '';
+  }
+
+  function tokenFor(emailHash: string): string {
+    return createRecognitionToken(emailHash, SECRET, NOW);
+  }
+
+  it('records that a report still applies', async () => {
+    const id = await publishedReport();
+
+    const outcome = await service().confirm(id, 'still_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    expect(outcome).toMatchObject({ status: 'recorded', confirmations: 1 });
+  });
+
+  it('extends the report by a month for each confirmation', async () => {
+    const id = await publishedReport();
+    const before = (await repository.findById(id))!.expiresAt!.getTime();
+
+    await service().confirm(id, 'still_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    const after = (await repository.findById(id))!.expiresAt!.getTime();
+    expect(after - before).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  it('does not extend anything when someone says it is over', async () => {
+    const id = await publishedReport();
+    const before = (await repository.findById(id))!.expiresAt!.getTime();
+
+    await service().confirm(id, 'no_longer_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    expect((await repository.findById(id))!.expiresAt!.getTime()).toBe(before);
+  });
+
+  it('retires the report once two people say it no longer applies', async () => {
+    const id = await publishedReport();
+
+    await service().confirm(id, 'no_longer_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+    const second = await service().confirm(id, 'no_longer_valid', {
+      recognitionToken: tokenFor(hashEmail('third@example.com', SECRET)),
+    });
+
+    expect(second).toMatchObject({ status: 'recorded', retired: true });
+    expect((await repository.findById(id))!.status).toBe('retired');
+  });
+
+  it('does not retire on a single dissenting voice', async () => {
+    const id = await publishedReport();
+
+    const outcome = await service().confirm(id, 'no_longer_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    expect(outcome).toMatchObject({ retired: false });
+    expect((await repository.findById(id))!.status).toBe('published');
+  });
+
+  it('refuses the reporter vouching for their own report', async () => {
+    const id = await publishedReport();
+
+    const outcome = await service().confirm(id, 'still_valid', {
+      recognitionToken: tokenFor(reporterHash),
+    });
+
+    expect(outcome).toEqual({ status: 'refused', reason: 'own_report' });
+  });
+
+  it('refuses a second answer from the same person', async () => {
+    const id = await publishedReport();
+    const token = tokenFor(otherHash);
+
+    await service().confirm(id, 'still_valid', { recognitionToken: token });
+    const second = await service().confirm(id, 'no_longer_valid', {
+      recognitionToken: token,
+    });
+
+    expect(second).toEqual({ status: 'refused', reason: 'already_confirmed' });
+  });
+
+  it.each([[undefined], [null], [''], ['garbage']])(
+    'asks an unrecognised visitor to verify first, for token %p',
+    async (recognitionToken) => {
+      const id = await publishedReport();
+
+      await expect(
+        service().confirm(id, 'still_valid', {
+          recognitionToken: recognitionToken as string | null | undefined,
+        }),
+      ).resolves.toEqual({ status: 'not_recognised' });
+    },
+  );
+
+  it('ignores a token signed with the wrong secret', async () => {
+    const id = await publishedReport();
+
+    await expect(
+      service().confirm(id, 'still_valid', {
+        recognitionToken: createRecognitionToken(otherHash, 'forged', NOW),
+      }),
+    ).resolves.toEqual({ status: 'not_recognised' });
+  });
+
+  it('reports an unknown report rather than throwing', async () => {
+    await expect(
+      service().confirm('00000000-0000-4000-8000-000000000000', 'still_valid', {
+        recognitionToken: tokenFor(otherHash),
+      }),
+    ).resolves.toEqual({ status: 'not_found' });
+  });
+
+  it('refuses to confirm a report that was never published', async () => {
+    await service().submit(submission(), { ipHash: 'ip1' });
+    const [draft] = repository.all();
+
+    const outcome = await service().confirm(draft.id, 'still_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    expect(outcome).toEqual({ status: 'not_found' });
+  });
+
+  it('never lets confirmations push a report past the ceiling', async () => {
+    const id = await publishedReport();
+
+    for (let i = 0; i < 6; i += 1) {
+      await service().confirm(id, 'still_valid', {
+        recognitionToken: tokenFor(hashEmail(`c${i}@example.com`, SECRET)),
+      });
+    }
+
+    const report = (await repository.findById(id))!;
+    const lifetimeDays =
+      (report.expiresAt!.getTime() - report.publishedAt!.getTime()) /
+      (24 * 60 * 60 * 1000);
+
+    expect(lifetimeDays).toBe(180);
+  });
+});

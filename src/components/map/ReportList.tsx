@@ -12,6 +12,7 @@ interface ReportListProps {
   reports: readonly PublicReport[];
   selectedId: string | null;
   loading: boolean;
+  onSelect: (id: string) => void;
 }
 
 /**
@@ -21,7 +22,12 @@ interface ReportListProps {
  * "what has been reported here lately" is often easier to read as a list
  * anyway. Both views show the same data from the same request.
  */
-export function ReportList({ reports, selectedId, loading }: ReportListProps) {
+export function ReportList({
+  reports,
+  selectedId,
+  loading,
+  onSelect,
+}: ReportListProps) {
   if (loading) {
     return <p className={styles.empty}>Loading reports…</p>;
   }
@@ -49,16 +55,29 @@ export function ReportList({ reports, selectedId, loading }: ReportListProps) {
           }
           aria-current={report.id === selectedId ? 'true' : undefined}
         >
-          <div className={styles.itemHeader}>
-            <span className={styles.itemCategory}>
-              {resolveCategoryLabel(report.categoryId, report.customCategoryLabel)}
+          <button
+            className={styles.itemOpen}
+            type="button"
+            onClick={() => onSelect(report.id)}
+          >
+            <span className={styles.itemHeader}>
+              <span className={styles.itemCategory}>
+                {resolveCategoryLabel(
+                  report.categoryId,
+                  report.customCategoryLabel,
+                )}
+              </span>
+              <span className={styles.itemWhen}>
+                {formatWhen(report.publishedAt)}
+              </span>
             </span>
-            <span className={styles.itemWhen}>
-              {formatWhen(report.publishedAt)}
-            </span>
-          </div>
 
-          <p className={styles.itemDescription}>{report.description}</p>
+            <span className={styles.itemWhere}>
+              {countryName(report.countryCode)}
+            </span>
+
+            <span className={styles.itemDescription}>{report.description}</span>
+          </button>
 
           <div className={styles.itemFooter}>
             <span>{timeOfDayLabel(report.timeOfDay)}</span>

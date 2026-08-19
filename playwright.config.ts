@@ -33,9 +33,13 @@ export default defineConfig({
       EMAIL_FROM: '',
       RECOGNITION_SECRET: 'end-to-end-test-secret',
       NEXT_PUBLIC_SITE_URL: baseURL,
-      // The map needs data to draw. Passed through from the developer's
-      // environment so the run uses the same database they are looking at.
-      DATABASE_URL: process.env.DATABASE_URL ?? '',
+      // No DATABASE_URL on purpose. A test run must never write to a database
+      // anybody relies on — an earlier version passed the developer's own
+      // connection through and left rows behind in it. The run uses the
+      // in-memory store instead, and anything that needs real data is covered
+      // by component tests and by the repository contract, which runs against
+      // Postgres deliberately.
+      DATABASE_URL: '',
     },
   },
 });

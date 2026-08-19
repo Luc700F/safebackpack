@@ -24,7 +24,9 @@ import {
 } from './basemap';
 import styles from './IncidentMap.module.css';
 import {
+  HEATMAP_LAYER,
   POINTS_LAYER,
+  POINT_ZOOM,
   REPORTS_SOURCE,
   heatmapLayer,
   pointsLayer,
@@ -40,7 +42,11 @@ const WORKER_URL = '/vendor/maplibre-gl-worker.mjs';
 interface IncidentMapProps {
   reports: readonly PublicReport[];
   loading: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
+  /** The report currently open, so the map can bring it into view. */
+  focus: PublicReport | null;
+  /** The detail card, floated over the map. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -50,7 +56,13 @@ interface IncidentMapProps {
  * the map is created once and then fed new data — rebuilding it on every filter
  * change would throw away the visitor's position and zoom.
  */
-export function IncidentMap({ reports, loading, onSelect }: IncidentMapProps) {
+export function IncidentMap({
+  reports,
+  loading,
+  onSelect,
+  focus,
+  children,
+}: IncidentMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   // Held in a ref so a new callback identity does not tear down the map.
@@ -101,6 +113,25 @@ export function IncidentMap({ reports, loading, onSelect }: IncidentMapProps) {
       if (typeof id === 'string') onSelectRef.current(id);
     });
 
+    // Clicking a cloud on the heatmap zooms towards it, which is the only
+    // useful answer at that distance: individual reports do not exist yet as
+    // separate marks, so "show me what is here" means "take me closer".
+    instance.on('click', HEATMAP_LAYER, (event: MapLayerMouseEvent) => {
+      instance.easeTo({
+        center: event.lngLat,
+        zoom: Math.min(instance.getZoom() + 3, POINT_ZOOM + 3),
+        duration: 700,
+      });
+    });
+
+    // A click on empty map closes whatever was open.
+    instance.on('click', (event: MapLayerMouseEvent) => {
+      const hits = instance.queryRenderedFeatures(event.point, {
+        layers: [POINTS_LAYER, HEATMAP_LAYER],
+      });
+      if (hits.length === 0) onSelectRef.current(null);
+    });
+
     for (const cursor of ['mouseenter', 'mouseleave'] as const) {
       instance.on(cursor, POINTS_LAYER, () => {
         instance.getCanvas().style.cursor =
@@ -135,6 +166,22 @@ export function IncidentMap({ reports, loading, onSelect }: IncidentMapProps) {
     else instance.once('idle', apply);
   }, [reports]);
 
+  // Bring the open report into view, without yanking the map if it is already
+  // on screen.
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !focus) return;
+
+    const target: [number, number] = [focus.longitude, focus.latitude];
+    const zoom = Math.max(instance.getZoom(), POINT_ZOOM + 2);
+
+    if (instance.getBounds().contains(target) && instance.getZoom() >= POINT_ZOOM) {
+      return;
+    }
+
+    instance.easeTo({ center: target, zoom, duration: 800 });
+  }, [focus]);
+
   // Follow the interface theme: a light heat ramp on a dark map is unreadable.
   useEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
@@ -163,6 +210,7 @@ export function IncidentMap({ reports, loading, onSelect }: IncidentMapProps) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.canvas} ref={container} />
+      {children}
       <div className={styles.status}>
         <p className={styles.badge}>
           {loading

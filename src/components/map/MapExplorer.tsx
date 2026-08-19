@@ -13,6 +13,7 @@ import {
 import type { PublicReport } from '@/lib/reports/public-report';
 
 import styles from './MapExplorer.module.css';
+import { ReportCard } from './ReportCard';
 import { ReportList } from './ReportList';
 
 // MapLibre needs a browser: it touches window as soon as it is constructed.
@@ -82,6 +83,7 @@ export function MapExplorer() {
   const { reports } = state;
   const loading = state.status === 'loading';
   const failed = state.status === 'failed';
+  const selected = reports.find((entry) => entry.id === selectedId) ?? null;
 
   const updateParams = useCallback(
     (next: URLSearchParams) => {
@@ -183,7 +185,23 @@ export function MapExplorer() {
         reports={reports}
         loading={loading}
         onSelect={setSelectedId}
-      />
+        focus={selected}
+      >
+        {selected && (
+          <ReportCard
+            report={selected}
+            onClose={() => setSelectedId(null)}
+            onConfirmed={(confirmed, confirmations) =>
+              setState((current) => ({
+                ...current,
+                reports: current.reports.map((entry) =>
+                  entry.id === confirmed.id ? { ...entry, confirmations } : entry,
+                ),
+              }))
+            }
+          />
+        )}
+      </IncidentMap>
 
       {failed && (
         <p className={styles.empty} role="alert">
@@ -192,7 +210,12 @@ export function MapExplorer() {
       )}
 
       <h2 className={styles.listHeading}>Reports in view</h2>
-      <ReportList reports={reports} selectedId={selectedId} loading={loading} />
+      <ReportList
+        reports={reports}
+        selectedId={selectedId}
+        loading={loading}
+        onSelect={setSelectedId}
+      />
     </div>
   );
 }

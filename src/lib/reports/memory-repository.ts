@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { AnonymisedReport } from './anonymisation';
+import type { Confirmation } from './confirmations';
 import type {
   NewReport,
   PublishedReportQuery,
@@ -19,6 +20,7 @@ import type {
 
 export class MemoryReportRepository implements ReportRepository {
   private readonly reports = new Map<string, StoredReport>();
+  private readonly confirmations = new Map<string, Confirmation[]>();
 
   async create(report: NewReport): Promise<StoredReport> {
     const stored: StoredReport = {
@@ -97,6 +99,51 @@ export class MemoryReportRepository implements ReportRepository {
       .map((report) => ({ ...report }));
   }
 
+  async findConfirmations(reportId: string): Promise<Confirmation[]> {
+    return (this.confirmations.get(reportId) ?? []).map((entry) => ({
+      ...entry,
+    }));
+  }
+
+  async addConfirmation(confirmation: Confirmation): Promise<void> {
+    const existing = this.confirmations.get(confirmation.reportId) ?? [];
+
+    if (
+      existing.some(
+        (entry) => entry.confirmerEmailHash === confirmation.confirmerEmailHash,
+      )
+    ) {
+      throw new Error('This person has already confirmed this report');
+    }
+
+    this.confirmations.set(confirmation.reportId, [
+      ...existing,
+      { ...confirmation },
+    ]);
+  }
+
+  async applyConfirmationOutcome(
+    reportId: string,
+    outcome: {
+      confirmationCount: number;
+      retirementCount: number;
+      expiresAt: Date;
+      retired: boolean;
+    },
+  ): Promise<void> {
+    const report = this.reports.get(reportId);
+    if (!report) {
+      throw new Error(`No such report: ${reportId}`);
+    }
+
+    this.reports.set(reportId, {
+      ...report,
+      confirmationCount: outcome.confirmationCount,
+      expiresAt: outcome.expiresAt,
+      status: outcome.retired ? 'retired' : report.status,
+    });
+  }
+
   async findDueForAnonymisation(
     now: Date,
     limit: number,
@@ -158,5 +205,6 @@ export class MemoryReportRepository implements ReportRepository {
 
   clear(): void {
     this.reports.clear();
+    this.confirmations.clear();
   }
 }

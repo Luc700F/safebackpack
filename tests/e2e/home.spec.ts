@@ -25,11 +25,12 @@ test.describe('home page', () => {
     ).toBeVisible();
   });
 
-  test('lists reports as text, not only as map pixels', async ({ page }) => {
-    const list = page.getByRole('list').filter({ has: page.getByRole('listitem') });
-    await expect(list.getByRole('listitem').first()).toBeVisible({
-      timeout: 15_000,
-    });
+  test('says plainly when there is nothing to show', async ({ page }) => {
+    // This run has no database, so the map is empty by design. That the list
+    // renders real reports is covered by the ReportList component test.
+    await expect(
+      page.getByText(/no reports match these filters/i).first(),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('keeps the chosen time span in the address bar', async ({ page }) => {

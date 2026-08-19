@@ -8,6 +8,7 @@
 
 import type { Coordinates } from '../geo/coordinates';
 import type { AnonymisedReport } from './anonymisation';
+import type { Confirmation, ConfirmationKind } from './confirmations';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
 
@@ -104,6 +105,29 @@ export interface ReportRepository {
 
   /** Published reports matching the query, newest first. */
   findPublished(query: PublishedReportQuery): Promise<StoredReport[]>;
+
+  /** Every confirmation on a report, so one person can be counted once. */
+  findConfirmations(reportId: string): Promise<Confirmation[]>;
+
+  /**
+   * Records one confirmation. Throws if this person already confirmed this
+   * report — the database enforces that too, so a race cannot slip past.
+   */
+  addConfirmation(confirmation: Confirmation): Promise<void>;
+
+  /**
+   * Writes back what the confirmation changed: the counts, the new expiry it
+   * earned, and whether enough people retired it.
+   */
+  applyConfirmationOutcome(
+    reportId: string,
+    outcome: {
+      confirmationCount: number;
+      retirementCount: number;
+      expiresAt: Date;
+      retired: boolean;
+    },
+  ): Promise<void>;
 
   /**
    * Reports whose time on the map is up and which still carry personal data.

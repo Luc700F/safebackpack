@@ -19,6 +19,9 @@ export type ApiErrorCode =
   | 'expired_token'
   | 'malformed_request'
   | 'not_found'
+  /** The visitor has no verified identity in this browser yet. */
+  | 'not_recognised'
+  | 'confirmation_refused'
   | 'internal_error';
 
 export interface ApiSuccess<T> {
@@ -77,6 +80,10 @@ function statusFor(code: ApiErrorCode): number {
       return 410;
     case 'not_found':
       return 404;
+    case 'not_recognised':
+      return 403;
+    case 'confirmation_refused':
+      return 409;
     case 'rate_limited':
       return 429;
     case 'email_failed':

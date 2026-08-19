@@ -15,6 +15,7 @@ import { buildVerificationEmail } from '../email/templates/verification';
 import type { CountryLocator } from '../geo/country-locator';
 import { fuzzCoordinates } from '../geo/coordinates';
 import {
+  CONFIRMATIONS_PER_PERSON_PER_DAY,
   REPORTS_PER_EMAIL_PER_DAY,
   REPORTS_PER_IP_PER_DAY,
 } from '../security/rate-limit';
@@ -33,6 +34,12 @@ import {
 import { expiresAt } from './retention';
 import { type AgeWindowId, ageWindowStart, parseAgeWindow } from './age-window';
 import { isReportCategoryId, type ReportCategoryId } from './categories';
+import {
+  type ConfirmationKind,
+  type ConfirmationRefusal,
+  canConfirm,
+  summarise,
+} from './confirmations';
 import { type PublicReport, toPublicReport } from './public-report';
 import type { ReportRepository, StoredReport } from './repository';
 import { type SubmissionErrors, validateSubmission } from './submission';
@@ -74,6 +81,19 @@ export interface MapResult {
   window: AgeWindowId;
   reports: PublicReport[];
 }
+
+export type ConfirmOutcome =
+  | {
+      status: 'recorded';
+      confirmations: number;
+      retirements: number;
+      retired: boolean;
+    }
+  /** The visitor has no verified identity in this browser yet. */
+  | { status: 'not_recognised' }
+  | { status: 'not_found' }
+  | { status: 'refused'; reason: ConfirmationRefusal }
+  | { status: 'rate_limited'; retryAfterMs: number };
 
 export type VerifyOutcome =
   | { status: 'published'; reportId: string; recognitionToken: string }
@@ -236,6 +256,83 @@ export class ReportService {
     });
 
     return { window, reports: reports.map(toPublicReport) };
+  }
+
+  /**
+   * Records that a traveller still sees a hazard, or no longer does.
+   *
+   * Identity comes from the recognition token a reporter received when they
+   * verified their own address — no account, and no second identity mechanism.
+   * Someone who has never filed a report cannot confirm one yet; that is a
+   * deliberate limit, not an oversight, and the interface says so.
+   */
+  async confirm(
+    reportId: string,
+    kind: ConfirmationKind,
+    context: { recognitionToken?: string | null },
+  ): Promise<ConfirmOutcome> {
+    const { repository, secret } = this.deps;
+    const now = this.clock();
+
+    const recognition = readRecognitionToken(
+      context.recognitionToken,
+      secret,
+      now,
+    );
+    if (!recognition) {
+      return { status: 'not_recognised' };
+    }
+
+    const limit = await this.deps.rateLimiter.check(
+      `confirm:${recognition.emailHash}`,
+      CONFIRMATIONS_PER_PERSON_PER_DAY,
+    );
+    if (!limit.allowed) {
+      return { status: 'rate_limited', retryAfterMs: limit.retryAfterMs };
+    }
+
+    const report = await repository.findById(reportId);
+    if (!report || !report.publishedAt) {
+      return { status: 'not_found' };
+    }
+
+    const existing = await repository.findConfirmations(reportId);
+    const check = canConfirm(report, recognition.emailHash, existing);
+    if (!check.allowed) {
+      return { status: 'refused', reason: check.reason };
+    }
+
+    await repository.addConfirmation({
+      reportId,
+      kind,
+      confirmerEmailHash: recognition.emailHash,
+      createdAt: now,
+    });
+
+    const summary = summarise([
+      ...existing,
+      {
+        reportId,
+        kind,
+        confirmerEmailHash: recognition.emailHash,
+        createdAt: now,
+      },
+    ]);
+
+    await repository.applyConfirmationOutcome(reportId, {
+      confirmationCount: summary.stillValid,
+      retirementCount: summary.noLongerValid,
+      // Only "still applies" buys more time; saying it is over must not.
+      expiresAt: expiresAt(report.publishedAt, summary.stillValid),
+      retired: summary.shouldRetire,
+    });
+
+    return {
+      status: 'recorded',
+      confirmations: summary.stillValid,
+      retirements: summary.noLongerValid,
+      retired: summary.shouldRetire,
+    };
   }
 
   private isRecognised(

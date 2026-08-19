@@ -17,9 +17,14 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "test:db": "tsx scripts/with-env.ts npx vitest run src/lib/reports/postgres-repository src/lib/geo/postgis-country-locator",
     "db:build-boundaries": "tsx scripts/build-country-boundaries.ts",
-    "db:seed-countries": "tsx scripts/seed-countries.ts"
+    "db:seed-countries": "tsx scripts/seed-countries.ts",
+    "db:seed-demo": "tsx scripts/seed-demo-reports.ts",
+    "maplibre:worker": "tsx scripts/copy-maplibre-worker.ts",
+    "predev": "npm run maplibre:worker",
+    "prebuild": "npm run maplibre:worker"
   },
   "dependencies": {
+    "maplibre-gl": "^6.4.1",
     "next": "16.3.1",
     "postgres": "^3.4.9",
     "react": "19.2.8",

@@ -197,6 +197,131 @@ export function describeReportRepository(
       });
     });
 
+    describe('findPublished', () => {
+      const older = new Date(NOW.getTime() - 60 * 24 * 60 * 60 * 1000);
+      const since = new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      async function publish(
+        overrides: Partial<NewReport>,
+        publishedAt = NOW,
+      ): Promise<string> {
+        const created = await repository.create(draft(overrides));
+        await repository.publish(created.id, { ...publication, publishedAt });
+        return created.id;
+      }
+
+      it('returns a published report', async () => {
+        const id = await publish({});
+
+        const found = await repository.findPublished({
+          publishedSince: since,
+          limit: 10,
+        });
+
+        expect(found.map((r) => r.id)).toEqual([id]);
+      });
+
+      it('leaves out a report that was never published', async () => {
+        await repository.create(draft());
+
+        expect(
+          await repository.findPublished({ publishedSince: since, limit: 10 }),
+        ).toEqual([]);
+      });
+
+      it('leaves out anything published before the window', async () => {
+        await publish({}, older);
+
+        expect(
+          await repository.findPublished({ publishedSince: since, limit: 10 }),
+        ).toEqual([]);
+      });
+
+      it('filters by category', async () => {
+        const theft = await publish({ categoryId: 'theft' });
+        await publish({
+          categoryId: 'scam',
+          reporterEmailHash: 'e'.repeat(64),
+          verificationTokenHash: 'f'.repeat(64),
+        });
+
+        const found = await repository.findPublished({
+          publishedSince: since,
+          categories: ['theft'],
+          limit: 10,
+        });
+
+        expect(found.map((r) => r.id)).toEqual([theft]);
+      });
+
+      it('treats an empty category list as no filter', async () => {
+        await publish({});
+
+        const found = await repository.findPublished({
+          publishedSince: since,
+          categories: [],
+          limit: 10,
+        });
+
+        expect(found).toHaveLength(1);
+      });
+
+      it('filters by country', async () => {
+        await publish({ countryCode: 'TH' });
+
+        expect(
+          await repository.findPublished({
+            publishedSince: since,
+            countryCode: 'CH',
+            limit: 10,
+          }),
+        ).toEqual([]);
+      });
+
+      it('returns the newest first', async () => {
+        const old = await publish(
+          { reporterEmailHash: '1'.repeat(64), verificationTokenHash: '1'.repeat(64) },
+          new Date(NOW.getTime() - 5000),
+        );
+        const fresh = await publish(
+          { reporterEmailHash: '2'.repeat(64), verificationTokenHash: '2'.repeat(64) },
+          NOW,
+        );
+
+        const found = await repository.findPublished({
+          publishedSince: since,
+          limit: 10,
+        });
+
+        expect(found.map((r) => r.id)).toEqual([fresh, old]);
+      });
+
+      it('honours the limit', async () => {
+        for (let i = 0; i < 4; i += 1) {
+          await publish({
+            reporterEmailHash: String(i).repeat(64),
+            verificationTokenHash: `${i}${'a'.repeat(63)}`,
+          });
+        }
+
+        expect(
+          await repository.findPublished({ publishedSince: since, limit: 2 }),
+        ).toHaveLength(2);
+      });
+
+      it('carries the displaced position, not the exact one', async () => {
+        await publish({});
+
+        const [found] = await repository.findPublished({
+          publishedSince: since,
+          limit: 10,
+        });
+
+        expect(found.publicPosition?.latitude).toBeCloseTo(13.757, 4);
+        expect(found.publicPosition?.latitude).not.toBeCloseTo(13.7563, 4);
+      });
+    });
+
     describe('anonymisation', () => {
       const expired = {
         ...publication,

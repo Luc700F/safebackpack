@@ -7,6 +7,32 @@ import { hashClientAddress, readClientAddress } from '@/lib/http/client-address'
 import { RECOGNITION_COOKIE, readCookie } from '@/lib/http/cookies';
 import { recognitionCookieOptions } from '@/lib/http/cookies';
 import { submitOutcomeToResult } from '@/lib/reports/api-mapping';
+import { success } from '@/lib/http/api-result';
+
+/**
+ * The published reports for the map and the list view.
+ *
+ * Public data, identical for everyone, so it may be cached at the edge for a
+ * minute. Nothing here depends on who is asking.
+ */
+export async function GET(request: Request): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+
+  const result = success(
+    await getReportService().listPublished({
+      window: params.get('window') ?? undefined,
+      categories: params.get('categories') ?? undefined,
+      country: params.get('country') ?? undefined,
+    }),
+  );
+
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: {
+      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+    },
+  });
+}
 
 /**
  * Files a report. The website is one client of this endpoint; a native app

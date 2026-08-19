@@ -33,6 +33,9 @@ export default defineConfig({
       EMAIL_FROM: '',
       RECOGNITION_SECRET: 'end-to-end-test-secret',
       NEXT_PUBLIC_SITE_URL: baseURL,
+      // The map needs data to draw. Passed through from the developer's
+      // environment so the run uses the same database they are looking at.
+      DATABASE_URL: process.env.DATABASE_URL ?? '',
     },
   },
 });

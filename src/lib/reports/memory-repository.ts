@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import type { AnonymisedReport } from './anonymisation';
 import type {
   NewReport,
+  PublishedReportQuery,
   PublicationDetails,
   ReportRepository,
   StoredReport,
@@ -75,6 +76,25 @@ export class MemoryReportRepository implements ReportRepository {
 
     this.reports.set(id, published);
     return { ...published };
+  }
+
+  async findPublished(query: PublishedReportQuery): Promise<StoredReport[]> {
+    const categories = new Set(query.categories ?? []);
+
+    return [...this.reports.values()]
+      .filter(
+        (report) =>
+          report.status === 'published' &&
+          report.publishedAt !== null &&
+          report.publishedAt.getTime() >= query.publishedSince.getTime() &&
+          (categories.size === 0 || categories.has(report.categoryId)) &&
+          (!query.countryCode || report.countryCode === query.countryCode),
+      )
+      .sort(
+        (a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0),
+      )
+      .slice(0, query.limit)
+      .map((report) => ({ ...report }));
   }
 
   async findDueForAnonymisation(

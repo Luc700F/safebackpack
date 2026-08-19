@@ -14,6 +14,7 @@ import type { Sql } from '../db/client';
 import { open, seal } from '../crypto/secret-box';
 import type {
   NewReport,
+  PublishedReportQuery,
   PublicationDetails,
   ReportRepository,
   ReportStatus,
@@ -190,6 +191,35 @@ export class PostgresReportRepository implements ReportRepository {
     }
 
     return this.toReport(row);
+  }
+
+  async findPublished(query: PublishedReportQuery): Promise<StoredReport[]> {
+    const { sql } = this;
+    const categories = query.categories?.length ? query.categories : null;
+
+    const rows = await sql<ReportRow[]>`
+      select
+        id, status, category, custom_category_label, description, time_of_day,
+        st_y(position::geometry) as latitude,
+        st_x(position::geometry) as longitude,
+        st_y(public_position::geometry) as public_latitude,
+        st_x(public_position::geometry) as public_longitude,
+        country_code, reporter_first_name, reporter_home_country,
+        publish_anonymously, reporter_email_encrypted, reporter_email_hash,
+        verification_token_hash, verification_expires_at,
+        occurred_at, created_at, published_at, expires_at,
+        flag_count, confirmation_count,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
+      from reports
+      where status = 'published'
+        and published_at >= ${query.publishedSince}
+        ${categories ? sql`and category in ${sql(categories)}` : sql``}
+        ${query.countryCode ? sql`and country_code = ${query.countryCode}` : sql``}
+      order by published_at desc
+      limit ${query.limit}
+    `;
+
+    return rows.map((row) => this.toReport(row));
   }
 
   async findDueForAnonymisation(

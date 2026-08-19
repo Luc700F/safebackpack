@@ -31,6 +31,9 @@ import {
   isTokenExpired,
 } from '../verification/token';
 import { expiresAt } from './retention';
+import { type AgeWindowId, ageWindowStart, parseAgeWindow } from './age-window';
+import { isReportCategoryId, type ReportCategoryId } from './categories';
+import { type PublicReport, toPublicReport } from './public-report';
 import type { ReportRepository, StoredReport } from './repository';
 import { type SubmissionErrors, validateSubmission } from './submission';
 
@@ -60,6 +63,17 @@ export type SubmitOutcome =
   | { status: 'verification_sent'; reportId: string }
   | { status: 'published'; reportId: string; recognitionToken: string }
   | { status: 'email_failed' };
+
+export interface MapQuery {
+  window?: unknown;
+  categories?: unknown;
+  country?: unknown;
+}
+
+export interface MapResult {
+  window: AgeWindowId;
+  reports: PublicReport[];
+}
 
 export type VerifyOutcome =
   | { status: 'published'; reportId: string; recognitionToken: string }
@@ -203,6 +217,27 @@ export class ReportService {
     };
   }
 
+  /**
+   * The published reports the map and the list view show.
+   *
+   * Query values come straight from a URL, so anything unrecognised is dropped
+   * rather than rejected: a hand-edited or stale link should still render a
+   * sensible map instead of an error page.
+   */
+  async listPublished(query: MapQuery, limit = 2000): Promise<MapResult> {
+    const window = parseAgeWindow(query.window);
+    const now = this.clock();
+
+    const reports = await this.deps.repository.findPublished({
+      publishedSince: ageWindowStart(window, now),
+      categories: parseCategories(query.categories),
+      countryCode: parseCountry(query.country),
+      limit,
+    });
+
+    return { window, reports: reports.map(toPublicReport) };
+  }
+
   private isRecognised(
     token: string | null | undefined,
     emailHash: string,
@@ -238,4 +273,20 @@ export class ReportService {
     url.searchParams.set('token', token);
     return url.toString();
   }
+}
+
+/** Accepts a comma-separated list or an array; silently drops unknown ids. */
+function parseCategories(value: unknown): ReportCategoryId[] {
+  const raw = typeof value === 'string' ? value.split(',') : value;
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((entry) => String(entry).trim())
+    .filter((entry): entry is ReportCategoryId => isReportCategoryId(entry));
+}
+
+function parseCountry(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[A-Z]{2}$/.test(value.trim().toUpperCase())
+    ? value.trim().toUpperCase()
+    : undefined;
 }

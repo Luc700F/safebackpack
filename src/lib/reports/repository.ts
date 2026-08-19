@@ -85,12 +85,25 @@ export interface PublicationDetails {
   expiresAt: Date;
 }
 
+/** What the map and the list view ask for. */
+export interface PublishedReportQuery {
+  /** Oldest publication timestamp to include. */
+  publishedSince: Date;
+  /** Empty or absent means every category. */
+  categories?: readonly ReportCategoryId[];
+  countryCode?: string;
+  limit: number;
+}
+
 export interface ReportRepository {
   create(report: NewReport): Promise<StoredReport>;
   findById(id: string): Promise<StoredReport | null>;
   findByVerificationTokenHash(hash: string): Promise<StoredReport | null>;
   /** Marks a report published and clears its verification token. */
   publish(id: string, details: PublicationDetails): Promise<StoredReport>;
+
+  /** Published reports matching the query, newest first. */
+  findPublished(query: PublishedReportQuery): Promise<StoredReport[]>;
 
   /**
    * Reports whose time on the map is up and which still carry personal data.

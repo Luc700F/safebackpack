@@ -62,6 +62,17 @@
   --color-category-scam: #0891b2;
   --color-category-other: #6b7280;
 
+  /* ---- Heatmap ----------------------------------------------------------
+   * A sequential ramp, pale to intense, so density reads as density. The
+   * category colours above are for individual points; these are for the crowd.
+   */
+  --color-heat-0: rgba(255, 237, 160, 0);
+  --color-heat-1: #ffeda0;
+  --color-heat-2: #fed976;
+  --color-heat-3: #feb24c;
+  --color-heat-4: #fd8d3c;
+  --color-heat-5: #f03b20;
+
   /* ---- Typography ------------------------------------------------------- */
   --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, sans-serif;

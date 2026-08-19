@@ -8,7 +8,7 @@ import {
   isWithinAgeWindow,
   parseAgeWindow,
 } from './age-window';
-import { RETENTION_DAYS } from './retention';
+import { MAX_RETENTION_DAYS } from './retention';
 
 const NOW = new Date('2026-08-19T12:00:00.000Z');
 
@@ -29,9 +29,9 @@ describe('AGE_WINDOWS', () => {
     expect([...days].sort((a, b) => a - b)).toEqual(days);
   });
 
-  it('never reaches further back than the retention period', () => {
+  it('never reaches further back than a report can live', () => {
     for (const window of AGE_WINDOWS) {
-      expect(window.days).toBeLessThanOrEqual(RETENTION_DAYS);
+      expect(window.days).toBeLessThanOrEqual(MAX_RETENTION_DAYS);
     }
   });
 

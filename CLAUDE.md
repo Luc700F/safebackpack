@@ -11,8 +11,9 @@ Read `docs/architecture.md` and `docs/decisions.md` before making changes.
   Styling lives in `.module.css` files beside the component.
 - **Every function in `src/lib` has unit tests**, including its failure paths. Update
   the tests in the same change as the code, never afterwards.
-- **The retention period exists in exactly one place**: `RETENTION_DAYS` in
-  `src/lib/reports/retention.ts`.
+- **Retention periods exist in exactly one place**: `src/lib/reports/retention.ts`.
+  A report lives 90 days, plus 30 per confirmation, capped at 180. Never
+  hard-code those numbers elsewhere.
 - **Category ids are permanent.** They are stored in the database and appear in URLs.
   Labels may change freely; ids may not.
 - **Every data operation is a versioned JSON endpoint** under `src/app/api/v1/`.

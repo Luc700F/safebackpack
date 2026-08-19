@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  RETENTION_DAYS,
+  BASE_RETENTION_DAYS,
+  CONFIRMATIONS_TO_MAXIMUM,
+  CONFIRMATION_EXTENSION_DAYS,
+  MAX_RETENTION_DAYS,
   daysUntilExpiry,
   expiresAt,
   isExpired,
@@ -9,21 +12,61 @@ import {
 } from './retention';
 
 const NOW = new Date('2026-08-19T12:00:00.000Z');
+const PUBLISHED = new Date('2026-01-01T00:00:00.000Z');
 
 function daysBefore(days: number): Date {
   return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-describe('RETENTION_DAYS', () => {
-  it('is the agreed six months', () => {
-    expect(RETENTION_DAYS).toBe(180);
+function daysAfter(from: Date, days: number): string {
+  return new Date(from.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+describe('the periods themselves', () => {
+  it('starts every report at three months', () => {
+    expect(BASE_RETENTION_DAYS).toBe(90);
+  });
+
+  it('never lets a report outlive six months', () => {
+    expect(MAX_RETENTION_DAYS).toBe(180);
+    expect(MAX_RETENTION_DAYS).toBeGreaterThan(BASE_RETENTION_DAYS);
+  });
+
+  it('reaches the ceiling after three confirmations', () => {
+    expect(CONFIRMATIONS_TO_MAXIMUM).toBe(3);
   });
 });
 
 describe('expiresAt', () => {
-  it('adds the retention period to the publication date', () => {
-    expect(expiresAt(new Date('2026-01-01T00:00:00.000Z')).toISOString()).toBe(
-      '2026-06-30T00:00:00.000Z',
+  it('gives an unconfirmed report the base period', () => {
+    expect(expiresAt(PUBLISHED).toISOString()).toBe(
+      daysAfter(PUBLISHED, BASE_RETENTION_DAYS),
+    );
+  });
+
+  it('adds a month for one confirmation', () => {
+    expect(expiresAt(PUBLISHED, 1).toISOString()).toBe(
+      daysAfter(PUBLISHED, BASE_RETENTION_DAYS + CONFIRMATION_EXTENSION_DAYS),
+    );
+  });
+
+  it('stops at the ceiling however often it is confirmed', () => {
+    for (const count of [3, 4, 50, 10_000]) {
+      expect(expiresAt(PUBLISHED, count).toISOString()).toBe(
+        daysAfter(PUBLISHED, MAX_RETENTION_DAYS),
+      );
+    }
+  });
+
+  it.each([[-1], [-100]])('ignores a negative count of %p', (count) => {
+    expect(expiresAt(PUBLISHED, count).toISOString()).toBe(
+      daysAfter(PUBLISHED, BASE_RETENTION_DAYS),
+    );
+  });
+
+  it('ignores a fractional count rather than granting part of a month', () => {
+    expect(expiresAt(PUBLISHED, 1.9).toISOString()).toBe(
+      expiresAt(PUBLISHED, 1).toISOString(),
     );
   });
 });
@@ -33,26 +76,40 @@ describe('isExpired', () => {
     expect(isExpired(NOW, NOW)).toBe(false);
   });
 
-  it('keeps a report one day short of the limit', () => {
-    expect(isExpired(daysBefore(RETENTION_DAYS - 1), NOW)).toBe(false);
+  it('keeps a report one day short of the base period', () => {
+    expect(isExpired(daysBefore(BASE_RETENTION_DAYS - 1), NOW)).toBe(false);
   });
 
-  it('deletes a report exactly on the limit', () => {
-    expect(isExpired(daysBefore(RETENTION_DAYS), NOW)).toBe(true);
+  it('deletes an unconfirmed report exactly on the base period', () => {
+    expect(isExpired(daysBefore(BASE_RETENTION_DAYS), NOW)).toBe(true);
   });
 
-  it('deletes a report well past the limit', () => {
-    expect(isExpired(daysBefore(400), NOW)).toBe(true);
+  it('keeps that same report alive once it has been confirmed', () => {
+    expect(isExpired(daysBefore(BASE_RETENTION_DAYS), NOW, 1)).toBe(false);
+  });
+
+  it('deletes even a much-confirmed report past the ceiling', () => {
+    expect(isExpired(daysBefore(MAX_RETENTION_DAYS), NOW, 99)).toBe(true);
   });
 });
 
 describe('daysUntilExpiry', () => {
-  it('counts down from the full retention period', () => {
-    expect(daysUntilExpiry(NOW, NOW)).toBe(RETENTION_DAYS);
+  it('counts down from the base period', () => {
+    expect(daysUntilExpiry(NOW, NOW)).toBe(BASE_RETENTION_DAYS);
+  });
+
+  it('counts down from the extended period when confirmed', () => {
+    expect(daysUntilExpiry(NOW, NOW, 2)).toBe(
+      BASE_RETENTION_DAYS + 2 * CONFIRMATION_EXTENSION_DAYS,
+    );
+  });
+
+  it('never exceeds the ceiling', () => {
+    expect(daysUntilExpiry(NOW, NOW, 99)).toBe(MAX_RETENTION_DAYS);
   });
 
   it('reaches zero on the day of deletion', () => {
-    expect(daysUntilExpiry(daysBefore(RETENTION_DAYS), NOW)).toBe(0);
+    expect(daysUntilExpiry(daysBefore(BASE_RETENTION_DAYS), NOW)).toBe(0);
   });
 
   it('never goes negative for long-overdue reports', () => {
@@ -64,8 +121,8 @@ describe('selectExpired', () => {
   it('returns only the reports the deletion job must remove', () => {
     const reports = [
       { id: 'fresh', publishedAt: daysBefore(1) },
-      { id: 'borderline', publishedAt: daysBefore(RETENTION_DAYS - 1) },
-      { id: 'due', publishedAt: daysBefore(RETENTION_DAYS) },
+      { id: 'borderline', publishedAt: daysBefore(BASE_RETENTION_DAYS - 1) },
+      { id: 'due', publishedAt: daysBefore(BASE_RETENTION_DAYS) },
       { id: 'overdue', publishedAt: daysBefore(365) },
     ];
 
@@ -75,8 +132,23 @@ describe('selectExpired', () => {
     ]);
   });
 
-  it('returns an empty list when nothing is due', () => {
-    expect(selectExpired([{ id: 'a', publishedAt: NOW }], NOW)).toEqual([]);
+  it('spares a report that confirmations have kept alive', () => {
+    const reports = [
+      { id: 'unconfirmed', publishedAt: daysBefore(100) },
+      { id: 'confirmed', publishedAt: daysBefore(100), confirmationCount: 1 },
+    ];
+
+    expect(selectExpired(reports, NOW).map((r) => r.id)).toEqual([
+      'unconfirmed',
+    ]);
+  });
+
+  it('still removes a confirmed report once the ceiling passes', () => {
+    const reports = [
+      { id: 'old', publishedAt: daysBefore(200), confirmationCount: 20 },
+    ];
+
+    expect(selectExpired(reports, NOW).map((r) => r.id)).toEqual(['old']);
   });
 
   it('handles an empty input', () => {

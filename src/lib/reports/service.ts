@@ -30,7 +30,7 @@ import {
   hashToken,
   isTokenExpired,
 } from '../verification/token';
-import { RETENTION_DAYS } from './retention';
+import { expiresAt } from './retention';
 import type { ReportRepository, StoredReport } from './repository';
 import { type SubmissionErrors, validateSubmission } from './submission';
 
@@ -65,8 +65,6 @@ export type VerifyOutcome =
   | { status: 'published'; reportId: string; recognitionToken: string }
   | { status: 'invalid_token' }
   | { status: 'expired' };
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export class ReportService {
   private readonly deps: ReportServiceDependencies;
@@ -227,7 +225,9 @@ export class ReportService {
     await this.deps.repository.publish(id, {
       publicPosition: fuzzCoordinates(report.position, this.random),
       publishedAt: now,
-      expiresAt: new Date(now.getTime() + RETENTION_DAYS * MS_PER_DAY),
+      // A fresh report carries no confirmations yet; the confirmation flow
+      // pushes this out later.
+      expiresAt: expiresAt(now),
     });
   }
 

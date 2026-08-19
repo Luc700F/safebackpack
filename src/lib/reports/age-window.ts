@@ -3,11 +3,11 @@
  *
  * Windows are expressed in whole days rather than calendar months so that the
  * result never depends on which month the visitor happens to be looking at.
- * The widest window matches the retention period, so "past 6 months" is
- * always everything we still hold.
+ * The widest window matches the retention ceiling, so "past 6 months" is
+ * always everything we still hold — most reports are gone well before that.
  */
 
-import { RETENTION_DAYS } from './retention';
+import { MAX_RETENTION_DAYS } from './retention';
 
 export type AgeWindowId = '1d' | '7d' | '30d' | '90d' | '180d';
 
@@ -22,7 +22,7 @@ export const AGE_WINDOWS: readonly AgeWindow[] = [
   { id: '7d', label: 'Past week', days: 7 },
   { id: '30d', label: 'Past month', days: 30 },
   { id: '90d', label: 'Past 3 months', days: 90 },
-  { id: '180d', label: 'Past 6 months', days: RETENTION_DAYS },
+  { id: '180d', label: 'Past 6 months', days: MAX_RETENTION_DAYS },
 ];
 
 export const DEFAULT_AGE_WINDOW: AgeWindowId = '90d';

@@ -148,7 +148,33 @@ post-moderation carries too much legal and abuse risk.
 - IP addresses are stored hashed, for rate limiting only, at most 7 days.
 - Data is stored in an EU region.
 
-Reports are hard-deleted after 180 days. To still allow annual risk reporting,
+### Visibility is earned, not granted
+
+A report starts with **90 days**. Each confirmation from another traveller adds
+**30 days**, up to a hard ceiling of **180 days** — nothing outlives that,
+however often it is confirmed, so "everything is eventually deleted" has no
+exceptions. See `src/lib/reports/retention.ts`.
+
+Rationale: with travel-safety reports, staleness is the real failure mode. A
+landslide gets cleared and a demonstration ends, and an out-of-date warning
+damages trust in the whole map more than a missing one does. Long-term
+statistics do not depend on keeping the reports themselves — they come from the
+anonymous archive below.
+
+### Confirmations
+
+Any verified traveller other than the reporter can say a report **still
+applies** or **no longer applies**, once per report. Two "no longer applies"
+retire it from the map without anyone moderating.
+
+**No account is required.** The confirmer is identified by the same keyed email
+hash as a reporter, so the existing verification and 30-day recognition covers
+it. An account would only ever be a more durable form of the same identity,
+which is why introducing one later needs no rework. If accounts do arrive with
+the iOS app, they will be **passwordless** — emailed sign-in link or platform
+biometrics. No self-built password handling, ever.
+
+Reports are hard-deleted when they expire. To still allow annual risk reporting,
 each report is folded into an **anonymous aggregate** before deletion:
 month × country × category × coarse grid cell → count. No description, no
 photos, no email, no name, and no precise position survives. Because the

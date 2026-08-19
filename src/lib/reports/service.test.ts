@@ -9,7 +9,7 @@ import { RateLimiter } from '../security/rate-limiter';
 import { hashEmail } from '../verification/email-hash';
 import { createRecognitionToken } from '../verification/recognition';
 import { MemoryReportRepository } from './memory-repository';
-import { RETENTION_DAYS } from './retention';
+import { BASE_RETENTION_DAYS } from './retention';
 import { ReportService } from './service';
 
 const NOW = new Date('2026-08-19T12:00:00.000Z');
@@ -289,7 +289,7 @@ describe('verify', () => {
 
     const [report] = repository.all();
     expect(report.expiresAt?.getTime()).toBe(
-      NOW.getTime() + RETENTION_DAYS * 24 * 60 * 60 * 1000,
+      NOW.getTime() + BASE_RETENTION_DAYS * 24 * 60 * 60 * 1000,
     );
   });
 

@@ -61,8 +61,8 @@ mode is a token swap and needs no component changes.
 - The schema nevertheless keeps `occurredAt` as its own column, defaulting to
   `publishedAt`. If we later let reporters backdate an incident, that is a form
   change rather than a migration.
-- `src/lib/reports/retention.ts` owns the six-month rule; nothing else may
-  hard-code 180 days.
+- `src/lib/reports/retention.ts` owns how long a report lives: 90 days, plus 30
+  per confirmation, capped at 180. Nothing else may hard-code those numbers.
 - `src/lib/reports/archive.ts` produces the anonymous aggregate that survives
   deletion, so annual risk reporting never depends on retaining personal data.
 

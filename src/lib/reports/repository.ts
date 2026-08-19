@@ -15,7 +15,9 @@ export type ReportStatus =
   | 'screening'
   | 'published'
   | 'held_for_review'
-  | 'rejected';
+  | 'rejected'
+  /** Enough travellers said it no longer applies. */
+  | 'retired';
 
 export interface StoredReport {
   id: string;
@@ -48,11 +50,18 @@ export interface StoredReport {
   expiresAt: Date | null;
 
   flagCount: number;
+  /** Drives how long the report lives; see retention.ts. */
+  confirmationCount: number;
 }
 
 export type NewReport = Omit<
   StoredReport,
-  'id' | 'publicPosition' | 'publishedAt' | 'expiresAt' | 'flagCount'
+  | 'id'
+  | 'publicPosition'
+  | 'publishedAt'
+  | 'expiresAt'
+  | 'flagCount'
+  | 'confirmationCount'
 >;
 
 export interface PublicationDetails {

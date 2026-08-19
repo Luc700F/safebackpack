@@ -26,6 +26,7 @@ export class MemoryReportRepository implements ReportRepository {
       publishedAt: null,
       expiresAt: null,
       flagCount: 0,
+      confirmationCount: 0,
     };
 
     this.reports.set(stored.id, stored);

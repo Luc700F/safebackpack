@@ -9,28 +9,34 @@
  * survives between requests during development.
  */
 
-import { hasEmailConfig, readSigningConfig } from './config/env';
+import {
+  hasDatabaseConfig,
+  hasEmailConfig,
+  readSigningConfig,
+} from './config/env';
+import { getSql } from './db/client';
 import { RecordingEmailSender } from './email/fake';
 import { ResendEmailSender } from './email/resend';
 import type { EmailSender } from './email/types';
 import { StaticCountryLocator } from './geo/country-locator';
 import { MemoryReportRepository } from './reports/memory-repository';
+import { PostgresReportRepository } from './reports/postgres-repository';
+import type { ReportRepository } from './reports/repository';
 import { ReportService } from './reports/service';
 import { MemoryRateLimitStore } from './security/rate-limit-store';
 import { RateLimiter } from './security/rate-limiter';
 
 let service: ReportService | null = null;
 let recordingSender: RecordingEmailSender | null = null;
-let repository: MemoryReportRepository | null = null;
+let memoryRepository: MemoryReportRepository | null = null;
 
 export function getReportService(): ReportService {
   if (service) return service;
 
   const signing = readSigningConfig();
-  repository = new MemoryReportRepository();
 
   service = new ReportService({
-    repository,
+    repository: buildRepository(signing.secret),
     emailSender: buildEmailSender(),
     // Until the database exists, every report is attributed to one country.
     // The real lookup is a PostGIS query; see docs/decisions.md.
@@ -43,6 +49,15 @@ export function getReportService(): ReportService {
   warnAboutPlaceholders();
 
   return service;
+}
+
+function buildRepository(secret: string): ReportRepository {
+  if (!hasDatabaseConfig()) {
+    memoryRepository = new MemoryReportRepository();
+    return memoryRepository;
+  }
+
+  return new PostgresReportRepository(getSql(), secret);
 }
 
 function buildEmailSender(): EmailSender {
@@ -65,15 +80,17 @@ export function getRecordedEmails(): RecordingEmailSender | null {
   return recordingSender;
 }
 
+/** Development only: the in-memory store, when no database is configured. */
 export function getReportRepository(): MemoryReportRepository | null {
-  return repository;
+  return memoryRepository;
 }
 
 function warnAboutPlaceholders(): void {
-  const placeholders = [
-    'reports are stored in memory and lost on restart',
-    'country lookup returns a fixed value',
-  ];
+  const placeholders = ['country lookup returns a fixed value'];
+
+  if (!hasDatabaseConfig()) {
+    placeholders.push('reports are stored in memory and lost on restart');
+  }
 
   if (!hasEmailConfig()) {
     placeholders.push('email is recorded rather than sent');

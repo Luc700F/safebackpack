@@ -20,7 +20,7 @@ accounts; email verification instead. Reports auto-delete after six months.
 | Audience | Independent travellers / backpackers. |
 | Platform | Responsive web app, mobile-first. **A native iOS app is possible later**, which is why the app is built API-first — see §8. |
 | Photos | **Not in the first usable build.** Uploads are the most expensive and legally riskiest part (EXIF stripping, re-encoding, automated screening, storage). They become their own stage after the test launch, once the rest works. |
-| Domain | None yet — the Vercel URL is used until public launch. |
+| Domain | **safebackpack.app**, registered 2026-08-19. Not yet attached to Vercel and not yet verified with Resend. |
 | Logo | Placeholder wordmark; a real identity comes before launch. |
 
 ### Categories
@@ -253,10 +253,6 @@ Needed before public launch:
 
 - Legal entity (§2), and a lawyer's review of the legal pages.
 - Support email address shown on the site.
-- **Domain — needed earlier than expected.** Until a domain is verified with
-  Resend, verification emails can only be sent to the account owner's own
-  address. Development and testing work fine; a public test with real users
-  does not.
 - Whether the project goes commercial (decides Vercel Pro).
 - How the first reports reach an otherwise empty map.
 - Which service screens uploaded photos, once photos are built.

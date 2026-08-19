@@ -13,7 +13,11 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "verify": "npm run lint && npm run typecheck && npm run test",
-    "email:test": "tsx scripts/send-test-email.ts"
+    "email:test": "tsx scripts/send-test-email.ts",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "test:db": "tsx scripts/with-env.ts npx vitest run src/lib/reports/postgres-repository src/lib/geo/postgis-country-locator",
+    "db:build-boundaries": "tsx scripts/build-country-boundaries.ts",
+    "db:seed-countries": "tsx scripts/seed-countries.ts"
   },
   "dependencies": {
     "next": "16.3.1",

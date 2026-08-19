@@ -20,7 +20,8 @@ accounts; email verification instead. Reports auto-delete after six months.
 | Audience | Independent travellers / backpackers. |
 | Platform | Responsive web app, mobile-first. **A native iOS app is possible later**, which is why the app is built API-first — see §8. |
 | Photos | **Not in the first usable build.** Uploads are the most expensive and legally riskiest part (EXIF stripping, re-encoding, automated screening, storage). They become their own stage after the test launch, once the rest works. |
-| Domain | **safebackpack.app**, registered 2026-08-19. Not yet attached to Vercel and not yet verified with Resend. |
+| Domain | **safebackpack.app**, registered 2026-08-19 at GoDaddy. Not yet attached to Vercel. |
+| Contact | **hello@safebackpack.app** — shown on the site, and the address for privacy and takedown requests. |
 | Logo | Placeholder wordmark; a real identity comes before launch. |
 
 ### Categories
@@ -107,7 +108,7 @@ Start on free tiers, but **only pick providers with a no-rewrite upgrade path**.
 | Concern | Choice | Free tier | Upgrade path |
 |---|---|---|---|
 | Hosting / CI | Vercel | Hobby | Pro (~$20/mo) — required before any commercial use, adds WAF |
-| Database | Postgres + PostGIS | Supabase Free | Paid plan, same connection string |
+| Database | Postgres + PostGIS | Supabase Free, eu-west-1 (Ireland) | Paid plan, same connection string |
 | File storage | Supabase Storage | 1 GB | Paid plan |
 | Map tiles | **open — see §7** | | |
 | Transactional email | Resend | 3k/mo | Paid plan |
@@ -252,7 +253,6 @@ Needed before the map stage:
 Needed before public launch:
 
 - Legal entity (§2), and a lawyer's review of the legal pages.
-- Support email address shown on the site.
 - Whether the project goes commercial (decides Vercel Pro).
 - How the first reports reach an otherwise empty map.
 - Which service screens uploaded photos, once photos are built.

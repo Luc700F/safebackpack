@@ -5,7 +5,7 @@
 Please report security issues privately, not through a public issue.
 
 Use GitHub's [private vulnerability reporting](https://github.com/Luc700F/safebackpack/security/advisories/new)
-for this repository. A contact email address will be added here before public launch.
+for this repository, or write to **hello@safebackpack.app**.
 
 Please include what you found, how to reproduce it, and what an attacker could
 achieve. We aim to acknowledge a report within 72 hours.

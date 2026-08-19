@@ -18,7 +18,9 @@ import { getSql } from './db/client';
 import { RecordingEmailSender } from './email/fake';
 import { ResendEmailSender } from './email/resend';
 import type { EmailSender } from './email/types';
+import type { CountryLocator } from './geo/country-locator';
 import { StaticCountryLocator } from './geo/country-locator';
+import { PostgisCountryLocator } from './geo/postgis-country-locator';
 import { MemoryReportRepository } from './reports/memory-repository';
 import { PostgresReportRepository } from './reports/postgres-repository';
 import type { ReportRepository } from './reports/repository';
@@ -38,9 +40,7 @@ export function getReportService(): ReportService {
   service = new ReportService({
     repository: buildRepository(signing.secret),
     emailSender: buildEmailSender(),
-    // Until the database exists, every report is attributed to one country.
-    // The real lookup is a PostGIS query; see docs/decisions.md.
-    countryLocator: new StaticCountryLocator('TH'),
+    countryLocator: buildCountryLocator(),
     rateLimiter: new RateLimiter(new MemoryRateLimitStore()),
     secret: signing.secret,
     siteUrl: signing.siteUrl,
@@ -58,6 +58,17 @@ function buildRepository(secret: string): ReportRepository {
   }
 
   return new PostgresReportRepository(getSql(), secret);
+}
+
+function buildCountryLocator(): CountryLocator {
+  if (!hasDatabaseConfig()) {
+    // Without boundaries there is nothing to test a point against. One fixed
+    // answer keeps the flow clickable locally; it is never right in production,
+    // which is why the startup warning names it.
+    return new StaticCountryLocator('TH');
+  }
+
+  return new PostgisCountryLocator(getSql());
 }
 
 function buildEmailSender(): EmailSender {
@@ -86,15 +97,18 @@ export function getReportRepository(): MemoryReportRepository | null {
 }
 
 function warnAboutPlaceholders(): void {
-  const placeholders = ['country lookup returns a fixed value'];
+  const placeholders: string[] = [];
 
   if (!hasDatabaseConfig()) {
     placeholders.push('reports are stored in memory and lost on restart');
+    placeholders.push('country lookup returns a fixed value');
   }
 
   if (!hasEmailConfig()) {
     placeholders.push('email is recorded rather than sent');
   }
+
+  if (placeholders.length === 0) return;
 
   console.warn(
     `safebackpack is running with placeholders: ${placeholders.join('; ')}.`,

@@ -15,6 +15,9 @@ Read `docs/architecture.md` and `docs/decisions.md` before making changes.
   `src/lib/reports/retention.ts`.
 - **Category ids are permanent.** They are stored in the database and appear in URLs.
   Labels may change freely; ids may not.
+- **Every data operation is a versioned JSON endpoint** under `src/app/api/v1/`.
+  No Server Actions for anything a native iOS app would also need to call.
+  Route handlers validate and serialise; they never hold business logic.
 - Interface language is **English**. Keep user-facing strings translatable — no
   concatenated sentences.
 

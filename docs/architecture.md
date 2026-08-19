@@ -9,9 +9,15 @@ safebackpack is a single Next.js application (App Router, TypeScript) deployed
 on Vercel. There is no separate backend: server logic lives in route handlers
 and server components inside the same project.
 
+It is nevertheless **API-first**. A native iOS app may follow, so every data
+operation is a versioned JSON endpoint under `src/app/api/v1/`, and the website
+is just the first client of it. Server Actions are not used for anything a
+second client would also need, because a native app cannot call them.
+
 ```
 src/
 ├── app/          Routes only. Thin — a route composes components and calls lib.
+│   └── api/v1/   The JSON API. Validates, calls lib, serialises. No logic here.
 ├── components/   UI. One folder per component: Component.tsx + Component.module.css.
 └── lib/          All business logic. No React, no Next.js imports. Heavily tested.
     ├── reports/  Categories, filtering, retention, anonymous archiving.

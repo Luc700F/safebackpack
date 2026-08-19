@@ -18,7 +18,7 @@ accounts; email verification instead. Reports auto-delete after six months.
 |---|---|
 | Interface language | **English only.** Data model stays translatable so more languages can be added without a rewrite. |
 | Audience | Independent travellers / backpackers. |
-| Platform | Responsive web app, mobile-first. PWA later, no native app. |
+| Platform | Responsive web app, mobile-first. **A native iOS app is possible later**, which is why the app is built API-first — see §8. |
 | Photos | **Not in the first usable build.** Uploads are the most expensive and legally riskiest part (EXIF stripping, re-encoding, automated screening, storage). They become their own stage after the test launch, once the rest works. |
 | Domain | None yet — the Vercel URL is used until public launch. |
 | Logo | Placeholder wordmark; a real identity comes before launch. |
@@ -165,7 +165,32 @@ See `src/lib/reports/archive.ts`.
 - Vitest for unit and integration tests, Playwright for journeys in Chromium
   and WebKit. CI blocks merges on lint, type, test or coverage failures.
 
-## 7. Map provider — OPEN
+## 7. API-first, because of a possible iOS app
+
+A native iOS app may follow. That does not change what we build now, but it
+changes *how*, and getting it wrong would be expensive to undo:
+
+- **Every data operation goes through a versioned JSON API** under `/api/v1/`.
+  The website is simply the first client of that API, not a special case.
+- **No Next.js Server Actions for anything a second client would also need.**
+  Server Actions are a web-only mechanism; a native app cannot call them. They
+  stay allowed for purely web concerns such as a cookie preference.
+- **The recognition token is a plain signed string**, so it works as a browser
+  cookie today and as an `Authorization: Bearer` header from an app later,
+  without a second identity mechanism.
+- **Business logic stays in `src/lib`**, never inside a route handler. A route
+  handler validates, calls into `lib`, and serialises the result.
+- Error responses use one documented shape, so a second client does not have to
+  guess at them.
+
+What this does *not* mean: no separate backend service, no React Native, and no
+work on the app itself now. The design system and CSS are web-only; a native app
+would bring its own interface.
+
+On iOS, MapKit is free and native regardless of which map the website uses, so
+§8 is a web decision only.
+
+## 8. Map provider — OPEN
 
 Apple Maps is the preferred look, but it comes with constraints:
 
@@ -187,7 +212,7 @@ can be swapped without touching the rest of the app.
 
 Needed before the map stage:
 
-- Map provider (§7).
+- Map provider (§8).
 - Whether heatmap intensity also decays with age, on top of the category weight.
 - The zoom level at which individual reports replace the heatmap.
 - Grid resolution for the anonymous archive — currently 0.5°, roughly 55 km.
@@ -197,6 +222,10 @@ Needed before public launch:
 
 - Legal entity (§2), and a lawyer's review of the legal pages.
 - Support email address shown on the site.
-- Domain, and whether the project goes commercial (decides Vercel Pro).
+- **Domain — needed earlier than expected.** Until a domain is verified with
+  Resend, verification emails can only be sent to the account owner's own
+  address. Development and testing work fine; a public test with real users
+  does not.
+- Whether the project goes commercial (decides Vercel Pro).
 - How the first reports reach an otherwise empty map.
 - Which service screens uploaded photos, once photos are built.

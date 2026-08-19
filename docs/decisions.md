@@ -114,8 +114,13 @@ Start on free tiers, but **only pick providers with a no-rewrite upgrade path**.
 | Rate limiting | Upstash Redis | free tier | Paid plan |
 | Error monitoring | Sentry | free tier | Paid plan |
 
-Country assignment is derived **offline** from the coordinates (point-in-polygon
-against a bundled boundary dataset) — no API cost, and a client cannot fake it.
+Country assignment is derived **server-side in PostGIS**, by a point-in-polygon
+test against a `countries` table with a spatial index — no API cost, and a client
+cannot fake it. Doing the same in Node was tried and rejected: the boundary
+dataset is 36 MB, which would be bundled into every serverless function and
+re-indexed on every cold start. The database already holds geometry and answers
+this in one indexed query. Until the database exists, `CountryLocator` has a
+static test implementation.
 
 ## 4. Moderation
 

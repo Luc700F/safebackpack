@@ -13,6 +13,7 @@ import {
 import type { PublicReport } from '@/lib/reports/public-report';
 
 import styles from './MapExplorer.module.css';
+import { MapSearch, type SearchChoice } from './MapSearch';
 import { ReportCard } from './ReportCard';
 import { ReportList } from './ReportList';
 
@@ -38,8 +39,9 @@ export function MapExplorer() {
     () => parseCategories(params.get('categories')),
     [params],
   );
+  const country = parseCountry(params.get('country'));
 
-  const queryKey = `${window}|${categories.join(',')}`;
+  const queryKey = `${window}|${categories.join(',')}|${country ?? ''}`;
 
   const [state, setState] = useState<QueryState>({
     key: queryKey,
@@ -47,6 +49,8 @@ export function MapExplorer() {
     reports: [],
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<'map' | 'list'>('map');
+  const [centre, setCentre] = useState<MapCentre | null>(null);
 
   // Reset while rendering when the filters change, rather than in an effect:
   // this is the "state derived from props" case React endorses, and it avoids
@@ -60,6 +64,7 @@ export function MapExplorer() {
 
     const query = new URLSearchParams({ window });
     if (categories.length > 0) query.set('categories', categories.join(','));
+    if (country) query.set('country', country);
 
     fetch(`/api/v1/reports?${query}`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : Promise.reject()))
@@ -78,7 +83,7 @@ export function MapExplorer() {
       });
 
     return () => controller.abort();
-  }, [window, categories, queryKey]);
+  }, [window, categories, country, queryKey]);
 
   const { reports } = state;
   const loading = state.status === 'loading';
@@ -96,6 +101,27 @@ export function MapExplorer() {
   function selectWindow(id: string) {
     const next = new URLSearchParams(params);
     next.set('window', id);
+    updateParams(next);
+  }
+
+  function chooseFromSearch(choice: SearchChoice) {
+    if (choice.countryCode) {
+      const next = new URLSearchParams(params);
+      next.set('country', choice.countryCode);
+      updateParams(next);
+      // Fitting the view to a whole country needs its outline, which the
+      // browser does not have. Filtering is the useful half; the map follows
+      // once reports for that country load.
+      setCentre(null);
+      return;
+    }
+
+    if (choice.centre) setCentre(choice.centre);
+  }
+
+  function clearCountry() {
+    const next = new URLSearchParams(params);
+    next.delete('country');
     updateParams(next);
   }
 
@@ -181,11 +207,31 @@ export function MapExplorer() {
         )}
       </div>
 
+      <div className={styles.toolbar}>
+        <div className={styles.viewToggle} role="group" aria-label="View">
+          {(['map', 'list'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`${styles.viewOption} ${
+                view === option ? styles.viewOptionActive : ''
+              }`}
+              aria-pressed={view === option}
+              onClick={() => setView(option)}
+            >
+              {option === 'map' ? 'Map' : 'List'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === 'map' ? (
       <IncidentMap
         reports={reports}
         loading={loading}
         onSelect={setSelectedId}
         focus={selected}
+        centre={centre}
       >
         {selected && (
           <ReportCard
@@ -202,6 +248,14 @@ export function MapExplorer() {
           />
         )}
       </IncidentMap>
+      ) : (
+        <ReportList
+          reports={reports}
+          selectedId={selectedId}
+          loading={loading}
+          onSelect={setSelectedId}
+        />
+      )}
 
       {failed && (
         <p className={styles.empty} role="alert">
@@ -209,15 +263,21 @@ export function MapExplorer() {
         </p>
       )}
 
-      <h2 className={styles.listHeading}>Reports in view</h2>
-      <ReportList
-        reports={reports}
-        selectedId={selectedId}
-        loading={loading}
-        onSelect={setSelectedId}
-      />
+      <div className={styles.below}>
+        <MapSearch
+          countryCode={country ?? null}
+          onChoose={chooseFromSearch}
+          onClear={clearCountry}
+        />
+      </div>
     </div>
   );
+}
+
+export interface MapCentre {
+  latitude: number;
+  longitude: number;
+  zoom: number;
 }
 
 interface QueryState {
@@ -225,6 +285,11 @@ interface QueryState {
   key: string;
   status: 'loading' | 'ready' | 'failed';
   reports: PublicReport[];
+}
+
+function parseCountry(value: string | null): string | undefined {
+  const code = value?.trim().toUpperCase();
+  return code && /^[A-Z]{2}$/.test(code) ? code : undefined;
 }
 
 function parseCategories(value: string | null): ReportCategoryId[] {

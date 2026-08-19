@@ -10,7 +10,10 @@
  */
 
 export const BASEMAP_STYLES = {
-  light: 'https://tiles.openfreemap.org/styles/positron',
+  // Liberty carries natural colours — blue water, green parks, warm land —
+  // which reads as a map rather than as a diagram. The earlier grey style was
+  // calmer but made the world look like a wireframe.
+  light: 'https://tiles.openfreemap.org/styles/liberty',
   dark: 'https://tiles.openfreemap.org/styles/dark',
 } as const;
 

@@ -45,6 +45,8 @@ interface IncidentMapProps {
   onSelect: (id: string | null) => void;
   /** The report currently open, so the map can bring it into view. */
   focus: PublicReport | null;
+  /** Somewhere the visitor searched for. */
+  centre: { latitude: number; longitude: number; zoom: number } | null;
   /** The detail card, floated over the map. */
   children?: React.ReactNode;
 }
@@ -61,6 +63,7 @@ export function IncidentMap({
   loading,
   onSelect,
   focus,
+  centre,
   children,
 }: IncidentMapProps) {
   const container = useRef<HTMLDivElement>(null);
@@ -105,7 +108,7 @@ export function IncidentMap({
     // MapLibre swallows tile and style failures unless something listens, so a
     // broken map looks like an empty one. Say so instead.
     instance.on('error', (event) => {
-      console.error('safebackpack map:', event.error?.message ?? event);
+      console.error('SafeBackpack map:', event.error?.message ?? event);
     });
 
     instance.on('click', POINTS_LAYER, (event: MapLayerMouseEvent) => {
@@ -181,6 +184,17 @@ export function IncidentMap({
 
     instance.easeTo({ center: target, zoom, duration: 800 });
   }, [focus]);
+
+  // Move to somewhere the visitor searched for.
+  useEffect(() => {
+    if (!map.current || !centre) return;
+
+    map.current.easeTo({
+      center: [centre.longitude, centre.latitude],
+      zoom: centre.zoom,
+      duration: 900,
+    });
+  }, [centre]);
 
   // Follow the interface theme: a light heat ramp on a dark map is unreadable.
   useEffect(() => {

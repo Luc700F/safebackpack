@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
+import { SiteFooter } from '@/components/SiteFooter/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader/SiteHeader';
 
 import styles from './page.module.css';
@@ -21,6 +22,7 @@ export default function VerifyPage() {
           <VerifyPanel />
         </Suspense>
       </main>
+      <SiteFooter />
     </>
   );
 }

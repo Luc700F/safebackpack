@@ -18,7 +18,7 @@ export interface VerificationEmailInput {
   expiryMinutes: number;
 }
 
-export const VERIFICATION_SUBJECT = 'Confirm your safebackpack report';
+export const VERIFICATION_SUBJECT = 'Confirm your SafeBackpack report';
 
 export function buildVerificationEmail(
   input: VerificationEmailInput,
@@ -38,9 +38,9 @@ export function buildVerificationEmail(
     '',
     `The link works for ${input.expiryMinutes} minutes and can be used once.`,
     '',
-    'If you did not write a report on safebackpack, ignore this message — nothing will be published.',
+    'If you did not write a report on SafeBackpack, ignore this message — nothing will be published.',
     '',
-    'safebackpack',
+    'SafeBackpack',
   ].join('\n');
 
   const html = `<!doctype html>
@@ -58,7 +58,7 @@ export function buildVerificationEmail(
       <span style="word-break:break-all">${escapeHtml(input.verificationUrl)}</span>
     </p>
     <p style="margin:0;color:#8d8779;font-size:14px">
-      If you did not write a report on safebackpack, ignore this message — nothing will be published.
+      If you did not write a report on SafeBackpack, ignore this message — nothing will be published.
     </p>
   </div>
 </body>

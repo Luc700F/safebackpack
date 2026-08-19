@@ -39,25 +39,27 @@ export function heatmapLayer(): HeatmapLayerSpecification {
       // A robbery weighs more than a scam; see categories.ts.
       'heatmap-weight': ['get', 'severity'],
       // Zoomed out, many reports overlap, so the ramp needs to saturate later.
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 9, 3],
+      // Higher than the usual default: the ramp has to win against a map with
+      // its own colours rather than against flat grey.
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1.6, 9, 4],
       'heatmap-color': [
         'interpolate',
         ['linear'],
         ['heatmap-density'],
-        0, cssVariable('--color-heat-0', 'rgba(255,237,160,0)'),
-        0.2, cssVariable('--color-heat-1', '#ffeda0'),
-        0.4, cssVariable('--color-heat-2', '#fed976'),
-        0.6, cssVariable('--color-heat-3', '#feb24c'),
-        0.8, cssVariable('--color-heat-4', '#fd8d3c'),
-        1, cssVariable('--color-heat-5', '#f03b20'),
+        0, cssVariable('--color-heat-0', 'rgba(255,214,10,0)'),
+        0.15, cssVariable('--color-heat-1', '#ffd60a'),
+        0.35, cssVariable('--color-heat-2', '#ffa62b'),
+        0.55, cssVariable('--color-heat-3', '#ff6b35'),
+        0.75, cssVariable('--color-heat-4', '#e5383b'),
+        1, cssVariable('--color-heat-5', '#9d0208'),
       ],
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 9, 30],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 6, 9, 34],
       // Fade out as the individual points fade in, so neither jumps.
       'heatmap-opacity': [
         'interpolate',
         ['linear'],
         ['zoom'],
-        POINT_ZOOM - 1, 0.85,
+        POINT_ZOOM - 1, 0.95,
         POINT_ZOOM + 1, 0,
       ],
     },

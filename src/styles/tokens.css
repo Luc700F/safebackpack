@@ -81,15 +81,18 @@
   --color-category-other: #7b8794;
 
   /* ---- Heatmap ----------------------------------------------------------
-   * A sequential ramp, pale to intense, so density reads as density. The
-   * category colours above are for individual points; these are for the crowd.
+   * A sequential ramp, saturated from the first step. A pale start would
+   * disappear into a map with natural colours in it, so this one begins where
+   * the terrain does not go and ends far darker than any of it.
+   * The category colours above are for individual points; these are for the
+   * crowd.
    */
-  --color-heat-0: rgba(255, 237, 160, 0);
-  --color-heat-1: #ffeda0;
-  --color-heat-2: #fed976;
-  --color-heat-3: #feb24c;
-  --color-heat-4: #fd8d3c;
-  --color-heat-5: #f03b20;
+  --color-heat-0: rgba(255, 214, 10, 0);
+  --color-heat-1: #ffd60a;
+  --color-heat-2: #ffa62b;
+  --color-heat-3: #ff6b35;
+  --color-heat-4: #e5383b;
+  --color-heat-5: #9d0208;
 
   /* ---- Typography ------------------------------------------------------- */
   /* The system face first: on Apple hardware that is SF Pro, which is what

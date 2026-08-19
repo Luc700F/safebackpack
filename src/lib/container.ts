@@ -126,6 +126,6 @@ function warnAboutPlaceholders(): void {
   if (placeholders.length === 0) return;
 
   console.warn(
-    `safebackpack is running with placeholders: ${placeholders.join('; ')}.`,
+    `SafeBackpack is running with placeholders: ${placeholders.join('; ')}.`,
   );
 }

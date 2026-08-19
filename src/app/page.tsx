@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 
 import { MapExplorer } from '@/components/map/MapExplorer';
+import { SiteFooter } from '@/components/SiteFooter/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader/SiteHeader';
 
 import styles from './page.module.css';
@@ -23,6 +24,7 @@ export default function HomePage() {
           <MapExplorer />
         </Suspense>
       </main>
+      <SiteFooter />
     </>
   );
 }

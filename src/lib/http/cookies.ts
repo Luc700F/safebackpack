@@ -1,5 +1,5 @@
 /**
- * The one cookie safebackpack sets.
+ * The one cookie SafeBackpack sets.
  *
  * It carries the signed recognition token, nothing else: no analytics, no
  * session, no tracking. Because it is strictly necessary for the feature the

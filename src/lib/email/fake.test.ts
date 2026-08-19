@@ -5,7 +5,7 @@ import { EmailDeliveryError, type EmailMessage } from './types';
 
 const MESSAGE: EmailMessage = {
   to: 'traveller@example.com',
-  subject: 'Confirm your safebackpack report',
+  subject: 'Confirm your SafeBackpack report',
   text: 'Confirm here',
   html: '<p>Confirm here</p>',
 };

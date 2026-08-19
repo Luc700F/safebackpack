@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { ReportForm } from '@/components/report-form/ReportForm';
+import { SiteFooter } from '@/components/SiteFooter/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader/SiteHeader';
 
 import styles from './page.module.css';
@@ -25,6 +26,7 @@ export default function ReportPage() {
         </div>
         <ReportForm />
       </main>
+      <SiteFooter />
     </>
   );
 }

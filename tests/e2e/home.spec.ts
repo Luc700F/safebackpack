@@ -15,19 +15,25 @@ test.describe('home page', () => {
       page.getByRole('group', { name: /type of incident/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Reports in view' }),
+      page.getByLabel('Search a country or a place'),
     ).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Footer' })).toBeVisible();
   });
 
   test('offers a way to file a report', async ({ page }) => {
+    // Both the header and the footer link to it, deliberately.
     await expect(
-      page.getByRole('link', { name: 'Report an incident' }),
+      page.getByRole('navigation', { name: 'Main' }).getByRole('link', {
+        name: 'Report an incident',
+      }),
     ).toBeVisible();
   });
 
   test('says plainly when there is nothing to show', async ({ page }) => {
     // This run has no database, so the map is empty by design. That the list
     // renders real reports is covered by the ReportList component test.
+    await page.getByRole('button', { name: 'List' }).click();
+
     await expect(
       page.getByText(/no reports match these filters/i).first(),
     ).toBeVisible({ timeout: 15_000 });
@@ -68,9 +74,6 @@ test.describe('home page', () => {
     await page.goto('/?window=banana&categories=arson');
 
     await expect(
-      page.getByRole('heading', { name: 'Reports in view' }),
-    ).toBeVisible();
-    await expect(
       page.getByRole('button', { name: 'Past 3 months' }),
     ).toHaveAttribute('aria-pressed', 'true');
   });
@@ -92,8 +95,67 @@ test.describe('home page', () => {
     });
 
     await page.goto('/');
-    await page.getByRole('heading', { name: 'Reports in view' }).waitFor();
+    await page.getByLabel('Search a country or a place').waitFor();
 
     expect(errors).toEqual([]);
+  });
+});
+
+test.describe('site navigation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('offers the statistics, about and legal pages', async ({ page }) => {
+    const footer = page.getByRole('navigation', { name: 'Footer' });
+
+    for (const label of ['Statistics', 'About', 'Imprint', 'Privacy', 'Terms']) {
+      await expect(footer.getByRole('link', { name: label })).toBeVisible();
+    }
+  });
+
+  test('every footer page opens and names itself', async ({ page }) => {
+    for (const [label, heading] of [
+      ['Statistics', 'Statistics'],
+      ['About', 'About'],
+      ['Imprint', 'Imprint'],
+      ['Privacy', 'Privacy'],
+      ['Terms', 'Terms of use'],
+    ]) {
+      await page.goto('/');
+      await page
+        .getByRole('navigation', { name: 'Footer' })
+        .getByRole('link', { name: label })
+        .click();
+
+      await expect(
+        page.getByRole('heading', { level: 1, name: heading }),
+      ).toBeVisible();
+    }
+  });
+
+  test('switches between the map and the list', async ({ page }) => {
+    await page.getByRole('button', { name: 'List' }).click();
+    await expect(page.getByRole('button', { name: 'List' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await page.getByRole('button', { name: 'Map' }).click();
+    await expect(page.getByRole('button', { name: 'Map' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  test('filters to a country from the search box', async ({ page }) => {
+    await page.getByLabel('Search a country or a place').fill('Thail');
+    await page
+      .getByRole('list', { name: 'Search results' })
+      .getByRole('button', { name: /Thailand/ })
+      .click();
+
+    await expect(page).toHaveURL(/country=TH/);
+    await expect(page.getByText(/showing thailand only/i)).toBeVisible();
   });
 });

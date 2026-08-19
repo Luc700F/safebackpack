@@ -11,8 +11,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'safebackpack — traveller safety reports on one map',
-    template: '%s · safebackpack',
+    default: 'SafeBackpack — traveller safety reports on one map',
+    template: '%s · SafeBackpack',
   },
   description:
     'Travellers report robberies, scams, natural hazards and unrest on a shared world map. No account needed.',

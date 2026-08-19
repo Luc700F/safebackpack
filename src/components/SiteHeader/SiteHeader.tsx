@@ -9,7 +9,7 @@ export function SiteHeader() {
         <span className={styles.mark} aria-hidden="true">
           sb
         </span>
-        safebackpack
+        SafeBackpack
       </Link>
       <nav className={styles.actions} aria-label="Main">
         <Link className={styles.reportButton} href="/report">

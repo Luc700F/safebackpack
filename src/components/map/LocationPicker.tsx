@@ -81,7 +81,7 @@ export function LocationPicker({
     instance.addControl(new NavigationControl({ showCompass: false }));
 
     instance.on('error', (event) => {
-      console.error('safebackpack location picker:', event.error?.message ?? event);
+      console.error('SafeBackpack location picker:', event.error?.message ?? event);
     });
 
     instance.on('click', (event: MapMouseEvent) => {

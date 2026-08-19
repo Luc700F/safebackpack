@@ -7,36 +7,44 @@
  */
 
 :root {
-  /* ---- Brand palette ---------------------------------------------------- */
-  --color-brand-50: #eef7f6;
-  --color-brand-100: #d3ebe8;
-  --color-brand-300: #7cc4bb;
-  --color-brand-500: #1f8f80;
-  --color-brand-600: #17756a;
-  --color-brand-700: #115a52;
+  /* ---- Brand palette ----------------------------------------------------
+   * One accent colour, used sparingly. Everything else is neutral, so the
+   * reports are the only thing on screen competing for attention.
+   */
+  --color-brand-50: #eaf6f4;
+  --color-brand-100: #cfe9e4;
+  --color-brand-300: #5cc4b5;
+  --color-brand-500: #12857a;
+  --color-brand-600: #0d6d64;
+  --color-brand-700: #09554e;
 
-  /* ---- Neutrals (warm, not grey) ---------------------------------------- */
-  --color-sand-50: #fbfaf7;
-  --color-sand-100: #f4f1eb;
-  --color-sand-200: #e7e2d8;
-  --color-sand-300: #d3ccbe;
-  --color-sand-500: #8d8779;
-  --color-sand-700: #4a463e;
-  --color-sand-900: #22201c;
+  /* ---- Neutrals ---------------------------------------------------------
+   * A near-black rather than pure black for text, and greys with a trace of
+   * blue: pure grey on a screen reads slightly dirty next to white.
+   */
+  --color-grey-50: #f5f5f7;
+  --color-grey-100: #ebebef;
+  --color-grey-200: #e0e0e6;
+  --color-grey-300: #c9c9d1;
+  --color-grey-500: #86868b;
+  --color-grey-700: #48484d;
+  --color-grey-900: #1d1d1f;
 
   --color-white: #ffffff;
   --color-black: #000000;
 
   /* ---- Semantic surfaces ------------------------------------------------ */
-  --color-background: var(--color-sand-50);
+  --color-background: var(--color-grey-50);
   --color-surface: var(--color-white);
   --color-surface-raised: var(--color-white);
-  --color-border: var(--color-sand-200);
-  --color-border-strong: var(--color-sand-300);
+  --color-border: var(--color-grey-200);
+  --color-border-strong: var(--color-grey-300);
+  /* Translucent bars that let the content show through behind them. */
+  --color-material: rgb(255 255 255 / 0.72);
 
   /* ---- Semantic text ---------------------------------------------------- */
-  --color-text: var(--color-sand-900);
-  --color-text-muted: var(--color-sand-500);
+  --color-text: var(--color-grey-900);
+  --color-text-muted: var(--color-grey-500);
   --color-text-inverse: var(--color-white);
 
   /* ---- Interactive ------------------------------------------------------ */
@@ -84,8 +92,12 @@
   --color-heat-5: #f03b20;
 
   /* ---- Typography ------------------------------------------------------- */
-  --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    'Segoe UI', Roboto, sans-serif;
+  /* The system face first: on Apple hardware that is SF Pro, which is what
+   * gives an interface its native feel more than any other single choice.
+   * Inter is the fallback everywhere else, and looks close enough that the
+   * layout does not shift between them. */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+    var(--font-inter), 'Segoe UI', Roboto, system-ui, sans-serif;
   --font-family-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
   --font-size-xs: 0.75rem;
@@ -101,6 +113,9 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+
+  /* Headings tighten as they grow; body text never does. */
+  --letter-spacing-display: -0.035em;
 
   --line-height-tight: 1.15;
   --line-height-snug: 1.35;
@@ -131,15 +146,17 @@
 
   /* ---- Radii ------------------------------------------------------------ */
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-  --radius-xl: 30px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
   --radius-pill: 999px;
 
   /* ---- Elevation -------------------------------------------------------- */
-  --shadow-sm: 0 1px 2px rgb(34 32 28 / 0.05), 0 2px 6px rgb(34 32 28 / 0.04);
-  --shadow-md: 0 2px 6px rgb(34 32 28 / 0.05), 0 8px 24px rgb(34 32 28 / 0.08);
-  --shadow-lg: 0 4px 10px rgb(34 32 28 / 0.06), 0 20px 48px rgb(34 32 28 / 0.14);
+  /* Restrained on purpose. Separation comes from the background stepping
+   * back, not from cards floating above it. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 1px 3px rgb(0 0 0 / 0.05), 0 6px 16px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.12);
 
   /* ---- Motion ----------------------------------------------------------- */
   --duration-fast: 120ms;
@@ -160,44 +177,46 @@
 /* Dark theme: only the semantic tokens change, never the component CSS. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --color-background: #161513;
-    --color-surface: #201e1b;
-    --color-surface-raised: #2a2724;
-    --color-border: #35322d;
-    --color-border-strong: #4a463e;
+    --color-background: #000000;
+    --color-surface: #1c1c1e;
+    --color-surface-raised: #2c2c2e;
+    --color-border: #3a3a3c;
+    --color-border-strong: #48484d;
+    --color-material: rgb(28 28 30 / 0.72);
 
-    --color-text: #f4f1eb;
-    --color-text-muted: #a8a296;
-    --color-text-inverse: #161513;
+    --color-text: #f5f5f7;
+    --color-text-muted: #98989d;
+    --color-text-inverse: #1d1d1f;
 
     --color-accent: var(--color-brand-300);
-    --color-accent-hover: #9ad5cd;
-    --color-accent-subtle: #14332f;
+    --color-accent-hover: #7ad4c6;
+    --color-accent-subtle: #10322e;
     --color-focus-ring: var(--color-brand-300);
 
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
-    --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-md: 0 2px 8px rgb(0 0 0 / 0.55);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6);
   }
 }
 
 :root[data-theme='dark'] {
-  --color-background: #161513;
-  --color-surface: #201e1b;
-  --color-surface-raised: #2a2724;
-  --color-border: #35322d;
-  --color-border-strong: #4a463e;
+  --color-background: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-raised: #2c2c2e;
+  --color-border: #3a3a3c;
+  --color-border-strong: #48484d;
+  --color-material: rgb(28 28 30 / 0.72);
 
-  --color-text: #f4f1eb;
-  --color-text-muted: #a8a296;
-  --color-text-inverse: #161513;
+  --color-text: #f5f5f7;
+  --color-text-muted: #98989d;
+  --color-text-inverse: #1d1d1f;
 
   --color-accent: var(--color-brand-300);
-  --color-accent-hover: #9ad5cd;
-  --color-accent-subtle: #14332f;
+  --color-accent-hover: #7ad4c6;
+  --color-accent-subtle: #10322e;
   --color-focus-ring: var(--color-brand-300);
 
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
-  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6);
 }

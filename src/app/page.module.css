@@ -16,11 +16,14 @@
 
 .title {
   font-size: var(--font-size-3xl);
+  letter-spacing: var(--letter-spacing-display);
+  font-weight: var(--font-weight-bold);
 }
 
 .lede {
   font-size: var(--font-size-lg);
   color: var(--color-text-muted);
+  max-width: 38rem;
 }
 
 

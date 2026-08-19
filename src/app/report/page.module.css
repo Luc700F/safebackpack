@@ -14,7 +14,9 @@
 }
 
 .title {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-3xl);
+  letter-spacing: var(--letter-spacing-display);
+  font-weight: var(--font-weight-bold);
 }
 
 .lede {

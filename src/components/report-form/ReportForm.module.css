@@ -11,7 +11,8 @@
 }
 
 .stepHeading {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
+  letter-spacing: var(--letter-spacing-display);
 }
 
 .stepIntro {
@@ -88,9 +89,10 @@
   gap: var(--space-4);
   margin: 0;
   padding: var(--space-5);
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-lg);
   background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .summaryRow {

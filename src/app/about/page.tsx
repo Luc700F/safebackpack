@@ -41,9 +41,9 @@ export default function AboutPage() {
               the map does not fill up with invented entries.
             </li>
             <li>
-              A report stays for a month. Other travellers can say it still
-              applies, which buys it another month up to three, or that it no
-              longer does, which retires it.
+              A report stays for two months. Other travellers can say it still
+              applies, which keeps it for a month from that day, up to three
+              months in total — or that it no longer does, which retires it.
             </li>
             <li>
               After that it leaves the map and everything personal is deleted.

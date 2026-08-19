@@ -55,8 +55,13 @@ export interface StoredReport {
   expiresAt: Date | null;
 
   flagCount: number;
-  /** Drives how long the report lives; see retention.ts. */
+  /** How many travellers said it still applies. Shown, not used for expiry. */
   confirmationCount: number;
+  /**
+   * When a traveller last said it still applies. This, not the count, decides
+   * how long the report lives — see retention.ts.
+   */
+  lastConfirmedAt: Date | null;
 
   /** What survives anonymisation. Null while the report is still personal. */
   retained: AnonymisedReport | null;
@@ -71,6 +76,7 @@ export type NewReport = Omit<
   | 'expiresAt'
   | 'flagCount'
   | 'confirmationCount'
+  | 'lastConfirmedAt'
   | 'retained'
   | 'anonymisedAt'
 > & {
@@ -124,6 +130,7 @@ export interface ReportRepository {
     outcome: {
       confirmationCount: number;
       retirementCount: number;
+      lastConfirmedAt: Date | null;
       expiresAt: Date;
       retired: boolean;
     },

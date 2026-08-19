@@ -1,9 +1,8 @@
 -- Confirmations: other travellers vouching for a report, or retiring it.
 --
--- Visibility is earned by currency rather than granted by the calendar. A
--- report starts with 30 days; each confirmation adds 30, up to a hard ceiling
--- of 90. Nothing outlives the ceiling. (These numbers were lowered from
--- 90/180 in a later change; src/lib/reports/retention.ts is authoritative.)
+-- Visibility is earned by currency rather than granted by the calendar. The
+-- base life of a report drops to 90 days; each confirmation adds 30, up to a
+-- hard ceiling of 180. Nothing outlives the ceiling.
 
 create type confirmation_kind as enum ('still_valid', 'no_longer_valid');
 

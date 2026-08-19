@@ -120,6 +120,11 @@
   font-weight: var(--font-weight-medium);
 }
 
+.lastConfirmed {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
 .confirmationsHint {
   margin: 0;
   font-size: var(--font-size-sm);

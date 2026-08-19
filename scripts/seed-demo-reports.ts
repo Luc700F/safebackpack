@@ -98,9 +98,9 @@ async function main(): Promise<void> {
 
     for (const [index, demo] of DEMOS.entries()) {
       const published = new Date(Date.now() - demo.daysAgo * 86_400_000);
-      // 30 days plus 30 per confirmation, capped at 90. Kept in step with
-      // src/lib/reports/retention.ts.
-      const lifetime = Math.min(30 + demo.confirmations * 30, 90);
+      // 60 days, or 30 from a recent confirmation, capped at 90. Kept in step
+      // with src/lib/reports/retention.ts.
+      const lifetime = Math.min(demo.confirmations > 0 ? 90 : 60, 90);
       const expires = new Date(published.getTime() + lifetime * 86_400_000);
 
       // Displaced roughly the way the application displaces a real position.

@@ -34,6 +34,11 @@ export interface PublicReport {
   publishedAt: string;
   /** How many other travellers said it still applies. */
   confirmations: number;
+  /**
+   * When one of them last said so. The count alone does not tell a reader
+   * whether a hazard was vouched for yesterday or two months ago.
+   */
+  lastConfirmedAt: string | null;
   /** Heatmap weight, from the category. */
   severity: number;
 }
@@ -74,6 +79,7 @@ export function toPublicReport(report: StoredReport): PublicReport {
     reporterHomeCountry: report.reporterHomeCountry,
     publishedAt: report.publishedAt.toISOString(),
     confirmations: report.confirmationCount,
+    lastConfirmedAt: report.lastConfirmedAt?.toISOString() ?? null,
     severity: severityOf(report.categoryId),
   };
 }

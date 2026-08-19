@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { formatWhen } from '@/lib/format/relative-time';
 import { countryName } from '@/lib/geo/countries';
 import { REPORT_CATEGORIES, resolveCategoryLabel } from '@/lib/reports/categories';
 import type { ConfirmationKind } from '@/lib/reports/confirmations';
@@ -52,7 +53,7 @@ export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
           kind: 'done',
           message:
             kind === 'still_valid'
-              ? 'Thank you — this report now stays on the map a month longer.'
+              ? 'Thank you — this report now runs for another month from today.'
               : 'Thank you. One more answer like yours retires it.',
         });
         onConfirmed(report, body.data.confirmations as number);
@@ -126,6 +127,12 @@ export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
             : 'Nobody has confirmed this yet'}
         </span>
 
+        {report.lastConfirmedAt && (
+          <span className={styles.lastConfirmed}>
+            Last confirmed {formatWhen(report.lastConfirmedAt).toLowerCase()}
+          </span>
+        )}
+
         {answered ? (
           <p className={styles.result}>{feedback.message}</p>
         ) : (
@@ -166,13 +173,3 @@ export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
   );
 }
 
-function formatWhen(published: string): string {
-  const date = new Date(published);
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 30) return `${days} days ago`;
-
-  return date.toLocaleDateString('en', { month: 'short', year: 'numeric' });
-}

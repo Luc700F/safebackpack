@@ -342,8 +342,11 @@ describe('confirm', () => {
     return outcome.status === 'published' ? outcome.reportId : '';
   }
 
+  // Signed at the current clock: recognition lapses after 30 days, so a token
+  // minted at the start of the test would be stale by the time a late
+  // confirmation is made.
   function tokenFor(emailHash: string): string {
-    return createRecognitionToken(emailHash, SECRET, NOW);
+    return createRecognitionToken(emailHash, SECRET, clock);
   }
 
   it('records that a report still applies', async () => {
@@ -356,16 +359,44 @@ describe('confirm', () => {
     expect(outcome).toMatchObject({ status: 'recorded', confirmations: 1 });
   });
 
-  it('extends the report by a month for each confirmation', async () => {
+  it('counts the extension from the confirmation, not from publication', async () => {
     const id = await publishedReport();
-    const before = (await repository.findById(id))!.expiresAt!.getTime();
 
+    // Confirmed on day 50, so it should now run to day 80 rather than day 60.
+    clock = new Date(NOW.getTime() + 50 * 24 * 60 * 60 * 1000);
     await service().confirm(id, 'still_valid', {
       recognitionToken: tokenFor(otherHash),
     });
 
-    const after = (await repository.findById(id))!.expiresAt!.getTime();
-    expect(after - before).toBe(30 * 24 * 60 * 60 * 1000);
+    const report = (await repository.findById(id))!;
+    expect(report.expiresAt!.getTime()).toBe(
+      clock.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
+  });
+
+  it('records when the report was last confirmed', async () => {
+    const id = await publishedReport();
+
+    clock = new Date(NOW.getTime() + 10 * 24 * 60 * 60 * 1000);
+    await service().confirm(id, 'still_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    expect((await repository.findById(id))!.lastConfirmedAt).toEqual(clock);
+  });
+
+  it('does not treat "no longer applies" as a confirmation', async () => {
+    const id = await publishedReport();
+    const before = (await repository.findById(id))!.expiresAt!.getTime();
+
+    clock = new Date(NOW.getTime() + 50 * 24 * 60 * 60 * 1000);
+    await service().confirm(id, 'no_longer_valid', {
+      recognitionToken: tokenFor(otherHash),
+    });
+
+    const report = (await repository.findById(id))!;
+    expect(report.lastConfirmedAt).toBeNull();
+    expect(report.expiresAt!.getTime()).toBe(before);
   });
 
   it('does not extend anything when someone says it is over', async () => {
@@ -468,10 +499,12 @@ describe('confirm', () => {
     expect(outcome).toEqual({ status: 'not_found' });
   });
 
-  it('never lets confirmations push a report past the ceiling', async () => {
+  it('never lets a chain of confirmations push a report past the ceiling', async () => {
     const id = await publishedReport();
 
-    for (let i = 0; i < 6; i += 1) {
+    // Somebody confirms it every fortnight for half a year.
+    for (let i = 1; i <= 12; i += 1) {
+      clock = new Date(NOW.getTime() + i * 14 * 24 * 60 * 60 * 1000);
       await service().confirm(id, 'still_valid', {
         recognitionToken: tokenFor(hashEmail(`c${i}@example.com`, SECRET)),
       });

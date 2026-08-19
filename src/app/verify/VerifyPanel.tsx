@@ -71,8 +71,8 @@ export function VerifyPanel() {
       <>
         <h1 className={styles.title}>Your report is on the map</h1>
         <p className={styles.text}>
-          Thank you. It stays visible for a month, and longer each time another
-          traveller confirms that it still applies.
+          Thank you. It stays visible for two months, and longer whenever
+          another traveller confirms that it still applies.
         </p>
         <Link className={styles.link} href="/">
           See the map

@@ -29,6 +29,7 @@ function stored(overrides: Partial<StoredReport> = {}): StoredReport {
     expiresAt: new Date(NOW.getTime() + 90 * 24 * 60 * 60 * 1000),
     flagCount: 0,
     confirmationCount: 3,
+    lastConfirmedAt: null,
     retained: null,
     anonymisedAt: null,
     ...overrides,
@@ -85,6 +86,18 @@ describe('toPublicReport', () => {
     );
 
     expect(publicReport.reporterFirstName).toBeNull();
+  });
+
+  it('carries when it was last confirmed, so a reader can judge it', () => {
+    const confirmed = new Date('2026-08-18T09:00:00.000Z');
+
+    expect(
+      toPublicReport(stored({ lastConfirmedAt: confirmed })).lastConfirmedAt,
+    ).toBe('2026-08-18T09:00:00.000Z');
+  });
+
+  it('says null when nobody has confirmed it', () => {
+    expect(toPublicReport(stored()).lastConfirmedAt).toBeNull();
   });
 
   it('carries the heatmap weight of the category', () => {

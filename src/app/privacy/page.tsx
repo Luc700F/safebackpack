@@ -47,9 +47,9 @@ export default function PrivacyPage() {
               published. The exact one never leaves our server.
             </li>
             <li>
-              After a month — longer if others confirm it, three months at the
-              very most — your report leaves the map and everything personal in
-              it is deleted.
+              After two months — longer if others confirm it, three months at
+              the very most — your report leaves the map and everything personal
+              in it is deleted.
             </li>
           </ul>
         </section>
@@ -83,9 +83,10 @@ export default function PrivacyPage() {
             you and that let us publish statistics later.
           </p>
           <p className={styles.text}>
-            A report starts with one month. Confirmations from other travellers
-            add a month each, up to three months at the very most. Nothing stays
-            on the map longer than that.
+            A report starts with two months. Each confirmation from another
+            traveller keeps it for a month from the day that confirmation was
+            given, and nothing stays on the map more than three months after it
+            was published.
           </p>
         </section>
 

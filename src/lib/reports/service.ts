@@ -319,11 +319,17 @@ export class ReportService {
       },
     ]);
 
+    // Only "still applies" buys more time; saying it is over must not. The
+    // extension counts from now, because that is when somebody last saw the
+    // hazard — not from when the report was written.
+    const lastConfirmedAt =
+      kind === 'still_valid' ? now : (report.lastConfirmedAt ?? null);
+
     await repository.applyConfirmationOutcome(reportId, {
       confirmationCount: summary.stillValid,
       retirementCount: summary.noLongerValid,
-      // Only "still applies" buys more time; saying it is over must not.
-      expiresAt: expiresAt(report.publishedAt, summary.stillValid),
+      lastConfirmedAt,
+      expiresAt: expiresAt(report.publishedAt, lastConfirmedAt),
       retired: summary.shouldRetire,
     });
 

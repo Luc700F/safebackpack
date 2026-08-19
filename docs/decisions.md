@@ -158,10 +158,18 @@ post-moderation carries too much legal and abuse risk.
 
 ### Visibility is earned, not granted
 
-A report starts with **30 days**. Each confirmation from another traveller adds
-**30 days**, up to a hard ceiling of **90 days** — nothing outlives that,
-however often it is confirmed, so "everything is eventually deleted" has no
-exceptions. See `src/lib/reports/retention.ts`.
+A report lives **60 days**. A confirmation from another traveller keeps it for
+**30 days from the moment of that confirmation** — not from publication —
+because what a confirmation says is "this was still true today", and that
+statement ages from today. A hard ceiling of **90 days from publication** means
+no chain of confirmations can keep something alive forever.
+
+The extension matters mostly for hazards that persist: a blocked road or a
+flooded coast is one event that gets confirmed rather than reported again.
+Thefts and scams regenerate on their own — each new victim files a new report,
+and it is the count of those that tells a reader something.
+
+See `src/lib/reports/retention.ts`.
 
 Three months, not six. Decided 2026-08-19: a travel-safety report that old is a
 historical note rather than a warning, and the shorter period is also easier to

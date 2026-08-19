@@ -43,8 +43,12 @@ stays runnable on a machine without one.
 
 ## Conventions
 
-- One file per migration, numbered and never edited once applied. A change means
-  a new file.
+- One file per migration, numbered and never edited once applied — not even the
+  comments. The runner records a checksum and refuses to continue if one
+  changes, because two databases that disagree about their own history are far
+  harder to untangle than a stale comment. A change means a new file.
+- A migration's comments describe the rules as they were when it was written.
+  For the rules as they are now, read `src/lib/reports/retention.ts`.
 - Enum values mirror the ids in `src/lib/reports/`. Those ids are permanent —
   renaming one breaks stored rows and existing URLs.
 - Constraints carry rules that must hold regardless of which code path writes

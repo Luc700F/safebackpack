@@ -17,6 +17,7 @@ function report(overrides: Partial<PublicReport> = {}): PublicReport {
     reporterHomeCountry: 'CH',
     publishedAt: '2026-08-19T12:00:00.000Z',
     confirmations: 2,
+    lastConfirmedAt: null,
     severity: 0.4,
     ...overrides,
   };

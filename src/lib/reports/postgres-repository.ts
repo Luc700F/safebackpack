@@ -51,6 +51,7 @@ interface ReportRow {
   expires_at: Date | null;
   flag_count: number;
   confirmation_count: number;
+  last_confirmed_at: Date | null;
   retained_month: string | null;
   cell_latitude: string | null;
   cell_longitude: string | null;
@@ -102,7 +103,7 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count,
+        flag_count, confirmation_count, last_confirmed_at,
         retained_month, cell_latitude, cell_longitude, anonymised_at
     `;
 
@@ -123,7 +124,7 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count,
+        flag_count, confirmation_count, last_confirmed_at,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports where id = ${id}
     `;
@@ -145,7 +146,7 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count,
+        flag_count, confirmation_count, last_confirmed_at,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports where verification_token_hash = ${hash}
     `;
@@ -183,7 +184,7 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count,
+        flag_count, confirmation_count, last_confirmed_at,
         retained_month, cell_latitude, cell_longitude, anonymised_at
     `;
 
@@ -209,7 +210,7 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count,
+        flag_count, confirmation_count, last_confirmed_at,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports
       where status = 'published'
@@ -270,6 +271,7 @@ export class PostgresReportRepository implements ReportRepository {
     outcome: {
       confirmationCount: number;
       retirementCount: number;
+      lastConfirmedAt: Date | null;
       expiresAt: Date;
       retired: boolean;
     },
@@ -282,6 +284,7 @@ export class PostgresReportRepository implements ReportRepository {
       update reports set
         confirmation_count = ${outcome.confirmationCount},
         retirement_count = ${outcome.retirementCount},
+        last_confirmed_at = ${outcome.lastConfirmedAt},
         expires_at = ${outcome.expiresAt},
         status = ${outcome.retired ? 'retired' : 'published'}
       where id = ${reportId}
@@ -307,7 +310,7 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count,
+        flag_count, confirmation_count, last_confirmed_at,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports
       where anonymised_at is null
@@ -405,6 +408,7 @@ export class PostgresReportRepository implements ReportRepository {
       expiresAt: row.expires_at,
       flagCount: row.flag_count,
       confirmationCount: row.confirmation_count,
+      lastConfirmedAt: row.last_confirmed_at,
       retained: this.toRetained(row),
       anonymisedAt: row.anonymised_at,
     };

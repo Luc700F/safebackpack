@@ -1,5 +1,6 @@
 'use client';
 
+import { formatWhen } from '@/lib/format/relative-time';
 import { countryName } from '@/lib/geo/countries';
 import { resolveCategoryLabel } from '@/lib/reports/categories';
 import { REPORT_CATEGORIES } from '@/lib/reports/categories';
@@ -89,6 +90,9 @@ export function ReportList({
               <span>
                 Confirmed by {report.confirmations}{' '}
                 {report.confirmations === 1 ? 'traveller' : 'travellers'}
+                {report.lastConfirmedAt
+                  ? `, last ${formatWhen(report.lastConfirmedAt).toLowerCase()}`
+                  : ''}
               </span>
             )}
           </div>
@@ -105,14 +109,3 @@ function colorToken(report: PublicReport): string {
   );
 }
 
-/** Relative for recent reports, absolute once "days ago" stops being useful. */
-function formatWhen(published: string): string {
-  const date = new Date(published);
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 30) return `${days} days ago`;
-
-  return date.toLocaleDateString('en', { month: 'short', year: 'numeric' });
-}

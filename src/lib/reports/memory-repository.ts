@@ -31,6 +31,7 @@ export class MemoryReportRepository implements ReportRepository {
       expiresAt: null,
       flagCount: 0,
       confirmationCount: 0,
+      lastConfirmedAt: null,
       retained: null,
       anonymisedAt: null,
     };
@@ -127,6 +128,7 @@ export class MemoryReportRepository implements ReportRepository {
     outcome: {
       confirmationCount: number;
       retirementCount: number;
+      lastConfirmedAt: Date | null;
       expiresAt: Date;
       retired: boolean;
     },
@@ -139,6 +141,7 @@ export class MemoryReportRepository implements ReportRepository {
     this.reports.set(reportId, {
       ...report,
       confirmationCount: outcome.confirmationCount,
+      lastConfirmedAt: outcome.lastConfirmedAt,
       expiresAt: outcome.expiresAt,
       status: outcome.retired ? 'retired' : report.status,
     });

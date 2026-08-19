@@ -20,6 +20,7 @@ function report(overrides: Partial<PublicReport> = {}): PublicReport {
     reporterHomeCountry: 'CH',
     publishedAt: new Date().toISOString(),
     confirmations: 0,
+    lastConfirmedAt: null,
     severity: 0.4,
     ...overrides,
   };

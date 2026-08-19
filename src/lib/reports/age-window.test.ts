@@ -17,14 +17,8 @@ function daysBefore(days: number): Date {
 }
 
 describe('AGE_WINDOWS', () => {
-  it('offers the five agreed windows in increasing order', () => {
-    expect(AGE_WINDOWS.map((w) => w.id)).toEqual([
-      '1d',
-      '7d',
-      '30d',
-      '90d',
-      '180d',
-    ]);
+  it('offers the four agreed windows in increasing order', () => {
+    expect(AGE_WINDOWS.map((w) => w.id)).toEqual(['1d', '7d', '30d', '90d']);
     const days = AGE_WINDOWS.map((w) => w.days);
     expect([...days].sort((a, b) => a - b)).toEqual(days);
   });
@@ -55,7 +49,9 @@ describe('parseAgeWindow', () => {
 
 describe('isAgeWindowId', () => {
   it('separates known from unknown ids', () => {
-    expect(isAgeWindowId('180d')).toBe(true);
+    expect(isAgeWindowId('90d')).toBe(true);
+    // Six months was dropped: a travel-safety report that old is history.
+    expect(isAgeWindowId('180d')).toBe(false);
     expect(isAgeWindowId('365d')).toBe(false);
   });
 });
@@ -93,6 +89,6 @@ describe('isWithinAgeWindow', () => {
 
   it('excludes a future timestamp', () => {
     const tomorrow = new Date(NOW.getTime() + 60_000);
-    expect(isWithinAgeWindow(tomorrow, '180d', NOW)).toBe(false);
+    expect(isWithinAgeWindow(tomorrow, '90d', NOW)).toBe(false);
   });
 });

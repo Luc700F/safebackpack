@@ -482,6 +482,6 @@ describe('confirm', () => {
       (report.expiresAt!.getTime() - report.publishedAt!.getTime()) /
       (24 * 60 * 60 * 1000);
 
-    expect(lifetimeDays).toBe(180);
+    expect(lifetimeDays).toBe(90);
   });
 });

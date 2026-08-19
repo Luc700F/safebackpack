@@ -23,17 +23,17 @@ function daysAfter(from: Date, days: number): string {
 }
 
 describe('the periods themselves', () => {
-  it('starts every report at three months', () => {
-    expect(BASE_RETENTION_DAYS).toBe(90);
+  it('starts every report at one month', () => {
+    expect(BASE_RETENTION_DAYS).toBe(30);
   });
 
-  it('never lets a report outlive six months', () => {
-    expect(MAX_RETENTION_DAYS).toBe(180);
+  it('never lets a report outlive three months', () => {
+    expect(MAX_RETENTION_DAYS).toBe(90);
     expect(MAX_RETENTION_DAYS).toBeGreaterThan(BASE_RETENTION_DAYS);
   });
 
-  it('reaches the ceiling after three confirmations', () => {
-    expect(CONFIRMATIONS_TO_MAXIMUM).toBe(3);
+  it('reaches the ceiling after two confirmations', () => {
+    expect(CONFIRMATIONS_TO_MAXIMUM).toBe(2);
   });
 });
 
@@ -51,7 +51,7 @@ describe('expiresAt', () => {
   });
 
   it('stops at the ceiling however often it is confirmed', () => {
-    for (const count of [3, 4, 50, 10_000]) {
+    for (const count of [2, 3, 50, 10_000]) {
       expect(expiresAt(PUBLISHED, count).toISOString()).toBe(
         daysAfter(PUBLISHED, MAX_RETENTION_DAYS),
       );
@@ -134,8 +134,8 @@ describe('selectExpired', () => {
 
   it('spares a report that confirmations have kept alive', () => {
     const reports = [
-      { id: 'unconfirmed', publishedAt: daysBefore(100) },
-      { id: 'confirmed', publishedAt: daysBefore(100), confirmationCount: 1 },
+      { id: 'unconfirmed', publishedAt: daysBefore(45) },
+      { id: 'confirmed', publishedAt: daysBefore(45), confirmationCount: 1 },
     ];
 
     expect(selectExpired(reports, NOW).map((r) => r.id)).toEqual([
@@ -145,7 +145,7 @@ describe('selectExpired', () => {
 
   it('still removes a confirmed report once the ceiling passes', () => {
     const reports = [
-      { id: 'old', publishedAt: daysBefore(200), confirmationCount: 20 },
+      { id: 'old', publishedAt: daysBefore(120), confirmationCount: 20 },
     ];
 
     expect(selectExpired(reports, NOW).map((r) => r.id)).toEqual(['old']);

@@ -15,8 +15,8 @@ export default function HomePage() {
           <h1 className={styles.title}>Know the risks before you get there</h1>
           <p className={styles.lede}>
             Travellers report robberies, thefts, scams, harassment, natural
-            hazards and unrest on a shared world map. Reports disappear after 90
-            days unless others confirm them, so what you see is what is current.
+            hazards and unrest on a shared world map. Reports fade after a month
+            unless other travellers confirm them, so what you see is current.
           </p>
         </section>
 

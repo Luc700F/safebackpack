@@ -56,12 +56,13 @@ export function ReviewStep({ draft }: { draft: ReportDraft }) {
       </dl>
 
       <p className={styles.notice}>
-        Your report stays on the map for 90 days. Other travellers can confirm
-        that it still applies, which extends it, or that it no longer does,
-        which retires it — six months at the most. It then leaves the map and is
-        stripped of everything personal: your name, your email address, the
-        exact position and this description are deleted. What remains is an
-        anonymous entry for statistics, with no link back to you.
+        Your report stays on the map for a month, and a month longer each time
+        another traveller confirms it still applies — three months at the most.
+        Two travellers saying it no longer applies retires it sooner. It then
+        leaves the map and is stripped of everything personal: your name, your
+        email address, the exact position and this description are deleted.
+        What remains is an anonymous entry for statistics, with no link back to
+        you.
       </p>
     </div>
   );

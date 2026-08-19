@@ -1,24 +1,28 @@
 /**
  * How long a report stays visible.
  *
- * Visibility is earned by currency rather than granted by the calendar. Every
- * report starts with a short life; each confirmation from another traveller
- * extends it, because a hazard others still see is a hazard that still exists.
- * A hard ceiling stops a heavily confirmed report from living forever — the
- * promise that everything is eventually deleted has no exceptions.
+ * Visibility is earned by currency rather than granted by the calendar. A
+ * report starts with one month; each confirmation from another traveller adds
+ * another, because a hazard others still see is a hazard that still exists. A
+ * hard ceiling of three months stops even a heavily confirmed report from
+ * living on as a historical note — the promise that everything is eventually
+ * deleted has no exceptions.
  *
  * What survives deletion is the anonymous aggregate in `archive.ts`, so long
  * term statistics never depend on keeping personal data around.
  */
 
 /** Life of a report nobody has confirmed. */
-export const BASE_RETENTION_DAYS = 90;
+export const BASE_RETENTION_DAYS = 30;
 
 /** Added by each confirmation that the report still applies. */
 export const CONFIRMATION_EXTENSION_DAYS = 30;
 
-/** No report outlives this, however often it is confirmed. */
-export const MAX_RETENTION_DAYS = 180;
+/**
+ * No report outlives this, however often it is confirmed. Three months, not
+ * six: a travel-safety report that old is a historical note, not a warning.
+ */
+export const MAX_RETENTION_DAYS = 90;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

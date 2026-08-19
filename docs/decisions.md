@@ -91,8 +91,8 @@ form. The schema still keeps `occurredAt` as its own column defaulting to
 `publishedAt`, so allowing backdated incidents later is a form change rather
 than a migration.
 
-The "how recent" filter offers 24 hours, 1 week, 1 month, 3 months, 6 months.
-The widest window equals the retention period, so it always means "everything".
+The "how recent" filter offers 24 hours, 1 week, 1 month, 3 months. The widest
+window equals the retention ceiling, so it always means "everything".
 
 ## 2. Legal entity — OPEN
 
@@ -158,10 +158,14 @@ post-moderation carries too much legal and abuse risk.
 
 ### Visibility is earned, not granted
 
-A report starts with **90 days**. Each confirmation from another traveller adds
-**30 days**, up to a hard ceiling of **180 days** — nothing outlives that,
+A report starts with **30 days**. Each confirmation from another traveller adds
+**30 days**, up to a hard ceiling of **90 days** — nothing outlives that,
 however often it is confirmed, so "everything is eventually deleted" has no
 exceptions. See `src/lib/reports/retention.ts`.
+
+Three months, not six. Decided 2026-08-19: a travel-safety report that old is a
+historical note rather than a warning, and the shorter period is also easier to
+justify to a supervisory authority. The "past 6 months" filter went with it.
 
 Rationale: with travel-safety reports, staleness is the real failure mode. A
 landslide gets cleared and a demonstration ends, and an out-of-date warning

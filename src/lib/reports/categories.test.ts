@@ -5,6 +5,7 @@ import {
   findCategory,
   isReportCategoryId,
   resolveCategoryLabel,
+  severityOf,
 } from './categories';
 
 describe('REPORT_CATEGORIES', () => {
@@ -95,5 +96,31 @@ describe('resolveCategoryLabel', () => {
     expect(() =>
       resolveCategoryLabel('nope' as never),
     ).toThrowError(/Unknown report category/);
+  });
+});
+
+describe('severityOf', () => {
+  it('weighs a violent robbery above a pickpocketing', () => {
+    expect(severityOf('robbery')).toBeGreaterThan(severityOf('theft'));
+  });
+
+  it('weighs a scam lowest of all', () => {
+    const others = REPORT_CATEGORIES.filter((c) => c.id !== 'scam');
+    for (const category of others) {
+      expect(severityOf('scam')).toBeLessThanOrEqual(severityOf(category.id));
+    }
+  });
+
+  it('keeps every weight within the 0 to 1 range', () => {
+    for (const category of REPORT_CATEGORIES) {
+      expect(severityOf(category.id)).toBeGreaterThan(0);
+      expect(severityOf(category.id)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('throws on an unknown category', () => {
+    expect(() => severityOf('nope' as never)).toThrowError(
+      /Unknown report category/,
+    );
   });
 });

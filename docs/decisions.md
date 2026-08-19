@@ -19,6 +19,7 @@ accounts; email verification instead. Reports auto-delete after six months.
 | Interface language | **English only.** Data model stays translatable so more languages can be added without a rewrite. |
 | Audience | Independent travellers / backpackers. |
 | Platform | Responsive web app, mobile-first. PWA later, no native app. |
+| Photos | **Not in the first usable build.** Uploads are the most expensive and legally riskiest part (EXIF stripping, re-encoding, automated screening, storage). They become their own stage after the test launch, once the rest works. |
 | Domain | None yet — the Vercel URL is used until public launch. |
 | Logo | Placeholder wordmark; a real identity comes before launch. |
 
@@ -41,6 +42,44 @@ wording is displayed but is not a filter value, so filters stay meaningful.
 One field, "home country" (ISO 3166-1 alpha-2), shown on the report together
 with the reporter's first name. Country of origin and country of residence are
 treated as the same thing.
+
+### Severity
+
+Not asked of the reporter — the category implies it. Each category carries a
+fixed weight between 0 and 1 that drives heatmap intensity, defined next to the
+category in `src/lib/reports/categories.ts`:
+
+| Category | Weight |
+|---|---|
+| `robbery` | 1.0 |
+| `harassment` | 0.9 |
+| `natural-hazard` | 0.7 |
+| `unrest` | 0.5 |
+| `other` | 0.5 |
+| `theft` | 0.4 |
+| `scam` | 0.3 |
+
+Rationale: a pickpocketing is inherently less severe than an armed robbery, and
+reporters cannot rate severity consistently. Further nuance — "armed", "at
+gunpoint" — belongs in the description. Changing the map's emphasis later means
+editing seven numbers in one file, and it applies retroactively to reports
+already filed.
+
+### Time of day
+
+Three buckets, taken from the reporter's **local** hour in the browser:
+
+| Bucket | Hours |
+|---|---|
+| `day` | 06:00–18:00 |
+| `evening` | 18:00–21:00 |
+| `night` | 21:00–06:00 |
+
+Stored as the bucket, never as a precise time. Coarse enough that place, date
+and time together do not single out one person; useful enough to show that a
+street is fine by day and not after dark. Deriving it server-side from a UTC
+timestamp would mislabel every report filed outside the server's timezone.
+See `src/lib/reports/time-of-day.ts`.
 
 ### Time
 
@@ -97,6 +136,9 @@ post-moderation carries too much legal and abuse risk.
 - EXIF metadata including GPS is stripped server-side; images are re-encoded.
 - Photos showing identifiable people are not allowed.
 - Reporters may publish under a pseudonym; the home country still shows.
+- After verifying once, a reporter is recognised in the same browser for
+  **30 days** and need not verify again — a compromise between not sending
+  travellers to their inbox on every report and limiting abuse.
 - Email addresses are stored encrypted and deleted with the report.
 - IP addresses are stored hashed, for rate limiting only, at most 7 days.
 - Data is stored in an EU region.
@@ -143,8 +185,18 @@ can be swapped without touching the rest of the app.
 
 ## Open questions
 
+Needed before the map stage:
+
 - Map provider (§7).
-- Legal entity (§2).
+- Whether heatmap intensity also decays with age, on top of the category weight.
+- The zoom level at which individual reports replace the heatmap.
 - Grid resolution for the anonymous archive — currently 0.5°, roughly 55 km.
+- Whether each country gets its own statistics page.
+
+Needed before public launch:
+
+- Legal entity (§2), and a lawyer's review of the legal pages.
 - Support email address shown on the site.
-- Whether a severity level is captured per report.
+- Domain, and whether the project goes commercial (decides Vercel Pro).
+- How the first reports reach an otherwise empty map.
+- Which service screens uploaded photos, once photos are built.

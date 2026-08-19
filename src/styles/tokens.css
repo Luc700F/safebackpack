@@ -1,0 +1,172 @@
+/*
+ * Design tokens — the single source of truth for how safebackpack looks.
+ *
+ * Nothing in this file knows anything about the app's behaviour, and no
+ * component hard-codes a colour, spacing or radius. To restyle the whole
+ * product, change the values here and nowhere else.
+ */
+
+:root {
+  /* ---- Brand palette ---------------------------------------------------- */
+  --color-brand-50: #eef7f6;
+  --color-brand-100: #d3ebe8;
+  --color-brand-300: #7cc4bb;
+  --color-brand-500: #1f8f80;
+  --color-brand-600: #17756a;
+  --color-brand-700: #115a52;
+
+  /* ---- Neutrals (warm, not grey) ---------------------------------------- */
+  --color-sand-50: #fbfaf7;
+  --color-sand-100: #f4f1eb;
+  --color-sand-200: #e7e2d8;
+  --color-sand-300: #d3ccbe;
+  --color-sand-500: #8d8779;
+  --color-sand-700: #4a463e;
+  --color-sand-900: #22201c;
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* ---- Semantic surfaces ------------------------------------------------ */
+  --color-background: var(--color-sand-50);
+  --color-surface: var(--color-white);
+  --color-surface-raised: var(--color-white);
+  --color-border: var(--color-sand-200);
+  --color-border-strong: var(--color-sand-300);
+
+  /* ---- Semantic text ---------------------------------------------------- */
+  --color-text: var(--color-sand-900);
+  --color-text-muted: var(--color-sand-500);
+  --color-text-inverse: var(--color-white);
+
+  /* ---- Interactive ------------------------------------------------------ */
+  --color-accent: var(--color-brand-500);
+  --color-accent-hover: var(--color-brand-600);
+  --color-accent-subtle: var(--color-brand-50);
+  --color-focus-ring: var(--color-brand-600);
+
+  /* ---- Status ----------------------------------------------------------- */
+  --color-danger: #c0392f;
+  --color-warning: #b7791f;
+  --color-success: #2f855a;
+
+  /* ---- Report categories ------------------------------------------------
+   * One colour per category, used by map, filters, badges and legend alike.
+   * Keys match the category ids in src/lib/reports/categories.ts.
+   */
+  --color-category-robbery: #c0392f;
+  --color-category-theft: #d97706;
+  --color-category-harassment: #8b5cf6;
+  --color-category-natural-hazard: #a16207;
+  --color-category-unrest: #2563eb;
+  --color-category-scam: #0891b2;
+  --color-category-other: #6b7280;
+
+  /* ---- Typography ------------------------------------------------------- */
+  --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+  --font-size-2xl: 1.75rem;
+  --font-size-3xl: 2.25rem;
+  --font-size-4xl: 3rem;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.15;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.6;
+
+  --letter-spacing-tight: -0.02em;
+
+  /* ---- Spacing scale ---------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* ---- Radii ------------------------------------------------------------ */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---- Elevation -------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgb(34 32 28 / 0.06), 0 1px 3px rgb(34 32 28 / 0.04);
+  --shadow-md: 0 4px 12px rgb(34 32 28 / 0.08), 0 1px 3px rgb(34 32 28 / 0.04);
+  --shadow-lg: 0 12px 32px rgb(34 32 28 / 0.12), 0 2px 8px rgb(34 32 28 / 0.06);
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0.1, 1);
+
+  /* ---- Layout ----------------------------------------------------------- */
+  --layout-max-width: 72rem;
+  --layout-gutter: var(--space-4);
+  --header-height: 4rem;
+
+  --z-map: 0;
+  --z-map-controls: 10;
+  --z-header: 100;
+  --z-dialog: 1000;
+}
+
+/* Dark theme: only the semantic tokens change, never the component CSS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-background: #161513;
+    --color-surface: #201e1b;
+    --color-surface-raised: #2a2724;
+    --color-border: #35322d;
+    --color-border-strong: #4a463e;
+
+    --color-text: #f4f1eb;
+    --color-text-muted: #a8a296;
+    --color-text-inverse: #161513;
+
+    --color-accent: var(--color-brand-300);
+    --color-accent-hover: #9ad5cd;
+    --color-accent-subtle: #14332f;
+    --color-focus-ring: var(--color-brand-300);
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5);
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-background: #161513;
+  --color-surface: #201e1b;
+  --color-surface-raised: #2a2724;
+  --color-border: #35322d;
+  --color-border-strong: #4a463e;
+
+  --color-text: #f4f1eb;
+  --color-text-muted: #a8a296;
+  --color-text-inverse: #161513;
+
+  --color-accent: var(--color-brand-300);
+  --color-accent-hover: #9ad5cd;
+  --color-accent-subtle: #14332f;
+  --color-focus-ring: var(--color-brand-300);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5);
+}

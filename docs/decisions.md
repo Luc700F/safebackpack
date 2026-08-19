@@ -20,7 +20,8 @@ accounts; email verification instead. Reports auto-delete after six months.
 | Audience | Independent travellers / backpackers. |
 | Platform | Responsive web app, mobile-first. **A native iOS app is possible later**, which is why the app is built API-first — see §8. |
 | Photos | **Not in the first usable build.** Uploads are the most expensive and legally riskiest part (EXIF stripping, re-encoding, automated screening, storage). They become their own stage after the test launch, once the rest works. |
-| Domain | **safebackpack.app**, registered 2026-08-19 at GoDaddy. Not yet attached to Vercel. |
+| Domain | **safebackpack.app**, registered 2026-08-19 at GoDaddy. Verified with Resend the same day; not yet attached to Vercel. |
+| Sending address | **no-reply@safebackpack.app**. That mailbox does not receive — hello@safebackpack.app is where people write. |
 | Contact | **hello@safebackpack.app** — shown on the site, and the address for privacy and takedown requests. |
 | Logo | Placeholder wordmark; a real identity comes before launch. |
 

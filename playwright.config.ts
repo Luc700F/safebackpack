@@ -26,5 +26,13 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    env: {
+      // No real key, so the run records verification emails instead of
+      // delivering them. A test must never put mail in a stranger's inbox.
+      RESEND_API_KEY: '',
+      EMAIL_FROM: '',
+      RECOGNITION_SECRET: 'end-to-end-test-secret',
+      NEXT_PUBLIC_SITE_URL: baseURL,
+    },
   },
 });

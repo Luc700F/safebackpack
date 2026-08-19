@@ -1,0 +1,148 @@
+/* Shared shell for every form control: label, hint, error, spacing. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.optional {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.error {
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+.control {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--duration-fast) var(--easing-standard);
+}
+
+.control::placeholder {
+  color: var(--color-text-muted);
+}
+
+.control:hover {
+  border-color: var(--color-text-muted);
+}
+
+.controlInvalid,
+.controlInvalid:hover {
+  border-color: var(--color-danger);
+}
+
+.textarea {
+  min-height: 9rem;
+  resize: vertical;
+  line-height: var(--line-height-normal);
+}
+
+.counter {
+  align-self: flex-end;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.counterOver {
+  color: var(--color-danger);
+}
+
+/* Radio group rendered as selectable cards. */
+.choices {
+  display: grid;
+  gap: var(--space-2);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+@media (min-width: 40rem) {
+  .choices {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--easing-standard),
+    background-color var(--duration-fast) var(--easing-standard);
+}
+
+.choice:hover {
+  border-color: var(--color-border-strong);
+}
+
+.choiceSelected {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-subtle);
+}
+
+.choiceInput {
+  margin-top: 0.3rem;
+  accent-color: var(--color-accent);
+}
+
+.choiceText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.choiceLabel {
+  font-weight: var(--font-weight-medium);
+}
+
+.choiceSwatch {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--swatch-color);
+}
+
+.choiceHint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Standalone checkbox with its label beside it. */
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.checkboxInput {
+  margin-top: 0.25rem;
+  accent-color: var(--color-accent);
+}

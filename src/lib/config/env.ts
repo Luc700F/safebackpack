@@ -18,12 +18,15 @@ export interface ServerConfig {
 }
 
 export class MissingConfigError extends Error {
-  constructor(public readonly variable: string) {
+  readonly variable: string;
+
+  constructor(variable: string) {
     super(
       `Missing environment variable ${variable}. ` +
         'Copy .env.example to .env.local and fill it in.',
     );
     this.name = 'MissingConfigError';
+    this.variable = variable;
   }
 }
 

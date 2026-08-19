@@ -277,10 +277,12 @@ describe('verify', () => {
 
     const [report] = repository.all();
     expect(report.publicPosition).not.toEqual(report.position);
-    expect(distanceMetres(report.position, report.publicPosition!)).toBeLessThanOrEqual(
-      FUZZ_RADIUS_METRES + 1,
-    );
-    expect(distanceMetres(report.position, report.publicPosition!)).toBeGreaterThan(0);
+    expect(
+      distanceMetres(report.position!, report.publicPosition!),
+    ).toBeLessThanOrEqual(FUZZ_RADIUS_METRES + 1);
+    expect(
+      distanceMetres(report.position!, report.publicPosition!),
+    ).toBeGreaterThan(0);
   });
 
   it('sets the deletion date six months out', async () => {

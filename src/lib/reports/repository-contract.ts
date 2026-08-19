@@ -85,8 +85,8 @@ export function describeReportRepository(
       it('keeps the position exactly as given', async () => {
         const report = await repository.create(draft());
 
-        expect(report.position.latitude).toBeCloseTo(13.7563, 5);
-        expect(report.position.longitude).toBeCloseTo(100.5018, 5);
+        expect(report.position?.latitude).toBeCloseTo(13.7563, 5);
+        expect(report.position?.longitude).toBeCloseTo(100.5018, 5);
       });
 
       it('stores a report with no name when it is anonymous', async () => {
@@ -175,8 +175,8 @@ export function describeReportRepository(
         const created = await repository.create(draft());
         const published = await repository.publish(created.id, publication);
 
-        expect(published.position.latitude).toBeCloseTo(
-          created.position.latitude,
+        expect(published.position?.latitude).toBeCloseTo(
+          created.position!.latitude,
           5,
         );
       });
@@ -193,6 +193,102 @@ export function describeReportRepository(
       it('throws for an unknown report rather than failing silently', async () => {
         await expect(
           repository.publish('00000000-0000-4000-8000-000000000000', publication),
+        ).rejects.toThrow();
+      });
+    });
+
+    describe('anonymisation', () => {
+      const expired = {
+        ...publication,
+        expiresAt: new Date(NOW.getTime() - 1000),
+      };
+
+      const retained = {
+        categoryId: 'theft' as const,
+        countryCode: 'TH',
+        timeOfDayId: 'night' as const,
+        cellLatitude: 13.7,
+        cellLongitude: 100.5,
+        month: '2026-08',
+        confirmationCount: 0,
+      };
+
+      it('finds a report whose time on the map is up', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, expired);
+
+        const due = await repository.findDueForAnonymisation(NOW, 10);
+        expect(due.map((r) => r.id)).toEqual([created.id]);
+      });
+
+      it('leaves a report that is still current alone', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, publication);
+
+        expect(await repository.findDueForAnonymisation(NOW, 10)).toEqual([]);
+      });
+
+      it('ignores a report that was never published', async () => {
+        await repository.create(draft());
+        expect(await repository.findDueForAnonymisation(NOW, 10)).toEqual([]);
+      });
+
+      it('returns at most the requested number', async () => {
+        for (let i = 0; i < 3; i += 1) {
+          const created = await repository.create(
+            draft({
+              reporterEmailHash: String(i).repeat(64),
+              verificationTokenHash: `${i}${'e'.repeat(63)}`,
+            }),
+          );
+          await repository.publish(created.id, expired);
+        }
+
+        expect(await repository.findDueForAnonymisation(NOW, 2)).toHaveLength(2);
+      });
+
+      it('erases every personal field', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, expired);
+        await repository.anonymise(created.id, retained, NOW);
+
+        const after = await repository.findById(created.id);
+        expect(after?.description).toBeNull();
+        expect(after?.reporterFirstName).toBeNull();
+        expect(after?.reporterEmail).toBeFalsy();
+        expect(after?.reporterEmailHash).toBeNull();
+        expect(after?.position).toBeNull();
+        expect(after?.publicPosition).toBeNull();
+      });
+
+      it('keeps what a statistic is built from', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, expired);
+        await repository.anonymise(created.id, retained, NOW);
+
+        const after = await repository.findById(created.id);
+        expect(after?.status).toBe('archived');
+        expect(after?.retained).toEqual(retained);
+        expect(after?.anonymisedAt).toBeInstanceOf(Date);
+        expect(after?.countryCode).toBe('TH');
+        expect(after?.reporterHomeCountry).toBe('CH');
+      });
+
+      it('does not offer the same report twice', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, expired);
+        await repository.anonymise(created.id, retained, NOW);
+
+        expect(await repository.findDueForAnonymisation(NOW, 10)).toEqual([]);
+      });
+
+      it('throws for an unknown report', async () => {
+        await expect(
+          repository.anonymise(
+            '00000000-0000-4000-8000-000000000000',
+            retained,
+            NOW,
+          ),
         ).rejects.toThrow();
       });
     });

@@ -62,7 +62,7 @@ export function ReporterStep({ draft, errors, onChange }: StepProps) {
         type="email"
         inputMode="email"
         autoComplete="email"
-        hint="Never shown to anyone, and deleted together with your report."
+        hint="Never shown to anyone. Deleted when your report leaves the map."
       />
 
       <CheckboxField

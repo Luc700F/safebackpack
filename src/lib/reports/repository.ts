@@ -7,6 +7,7 @@
  */
 
 import type { Coordinates } from '../geo/coordinates';
+import type { AnonymisedReport } from './anonymisation';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
 
@@ -17,7 +18,9 @@ export type ReportStatus =
   | 'held_for_review'
   | 'rejected'
   /** Enough travellers said it no longer applies. */
-  | 'retired';
+  | 'retired'
+  /** Past its time on the map, stripped of everything personal. */
+  | 'archived';
 
 export interface StoredReport {
   id: string;
@@ -25,11 +28,12 @@ export interface StoredReport {
 
   categoryId: ReportCategoryId;
   customCategoryLabel: string | null;
-  description: string;
+  /** Cleared on anonymisation. */
+  description: string | null;
   timeOfDay: TimeOfDayId;
 
-  /** The position the reporter picked. Never leaves the server. */
-  position: Coordinates;
+  /** The position the reporter picked. Never leaves the server, cleared on anonymisation. */
+  position: Coordinates | null;
   /** Displaced position, written once on publication. This is what is served. */
   publicPosition: Coordinates | null;
   countryCode: string;
@@ -38,8 +42,8 @@ export interface StoredReport {
   reporterHomeCountry: string;
   publishAnonymously: boolean;
 
-  reporterEmail: string;
-  reporterEmailHash: string;
+  reporterEmail: string | null;
+  reporterEmailHash: string | null;
 
   verificationTokenHash: string | null;
   verificationExpiresAt: Date | null;
@@ -52,6 +56,10 @@ export interface StoredReport {
   flagCount: number;
   /** Drives how long the report lives; see retention.ts. */
   confirmationCount: number;
+
+  /** What survives anonymisation. Null while the report is still personal. */
+  retained: AnonymisedReport | null;
+  anonymisedAt: Date | null;
 }
 
 export type NewReport = Omit<
@@ -62,7 +70,14 @@ export type NewReport = Omit<
   | 'expiresAt'
   | 'flagCount'
   | 'confirmationCount'
->;
+  | 'retained'
+  | 'anonymisedAt'
+> & {
+  description: string;
+  position: Coordinates;
+  reporterEmail: string;
+  reporterEmailHash: string;
+};
 
 export interface PublicationDetails {
   publicPosition: Coordinates;
@@ -76,4 +91,20 @@ export interface ReportRepository {
   findByVerificationTokenHash(hash: string): Promise<StoredReport | null>;
   /** Marks a report published and clears its verification token. */
   publish(id: string, details: PublicationDetails): Promise<StoredReport>;
+
+  /**
+   * Reports whose time on the map is up and which still carry personal data.
+   * Returned in batches so one very large backlog cannot exhaust memory.
+   */
+  findDueForAnonymisation(now: Date, limit: number): Promise<StoredReport[]>;
+
+  /**
+   * Replaces a report's personal fields with the retained summary. Deliberately
+   * not a delete: see docs/decisions.md.
+   */
+  anonymise(
+    id: string,
+    retained: AnonymisedReport,
+    now: Date,
+  ): Promise<void>;
 }

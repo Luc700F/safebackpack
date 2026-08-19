@@ -19,6 +19,7 @@ import type {
   ReportStatus,
   StoredReport,
 } from './repository';
+import type { AnonymisedReport } from './anonymisation';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
 
@@ -27,10 +28,11 @@ interface ReportRow {
   status: ReportStatus;
   category: ReportCategoryId;
   custom_category_label: string | null;
-  description: string;
+  // Null once the row has been anonymised.
+  description: string | null;
   time_of_day: TimeOfDayId;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   public_latitude: number | null;
   public_longitude: number | null;
   country_code: string;
@@ -38,7 +40,7 @@ interface ReportRow {
   reporter_home_country: string;
   publish_anonymously: boolean;
   reporter_email_encrypted: Uint8Array | null;
-  reporter_email_hash: string;
+  reporter_email_hash: string | null;
   verification_token_hash: string | null;
   verification_expires_at: Date | null;
   occurred_at: Date;
@@ -47,6 +49,10 @@ interface ReportRow {
   expires_at: Date | null;
   flag_count: number;
   confirmation_count: number;
+  retained_month: string | null;
+  cell_latitude: string | null;
+  cell_longitude: string | null;
+  anonymised_at: Date | null;
 }
 
 export class PostgresReportRepository implements ReportRepository {
@@ -94,7 +100,8 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count
+        flag_count, confirmation_count,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
     `;
 
     return this.toReport(row);
@@ -114,7 +121,8 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count
+        flag_count, confirmation_count,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports where id = ${id}
     `;
 
@@ -135,7 +143,8 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count
+        flag_count, confirmation_count,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports where verification_token_hash = ${hash}
     `;
 
@@ -172,7 +181,8 @@ export class PostgresReportRepository implements ReportRepository {
         publish_anonymously, reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
-        flag_count, confirmation_count
+        flag_count, confirmation_count,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
     `;
 
     if (!row) {
@@ -180,6 +190,87 @@ export class PostgresReportRepository implements ReportRepository {
     }
 
     return this.toReport(row);
+  }
+
+  async findDueForAnonymisation(
+    now: Date,
+    limit: number,
+  ): Promise<StoredReport[]> {
+    const rows = await this.sql<ReportRow[]>`
+      select
+        id, status, category, custom_category_label, description, time_of_day,
+        st_y(position::geometry) as latitude,
+        st_x(position::geometry) as longitude,
+        st_y(public_position::geometry) as public_latitude,
+        st_x(public_position::geometry) as public_longitude,
+        country_code, reporter_first_name, reporter_home_country,
+        publish_anonymously, reporter_email_encrypted, reporter_email_hash,
+        verification_token_hash, verification_expires_at,
+        occurred_at, created_at, published_at, expires_at,
+        flag_count, confirmation_count,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
+      from reports
+      where anonymised_at is null
+        and expires_at is not null
+        and expires_at <= ${now}
+      order by expires_at
+      limit ${limit}
+    `;
+
+    return rows.map((row) => this.toReport(row));
+  }
+
+  async anonymise(
+    id: string,
+    retained: AnonymisedReport,
+    now: Date,
+  ): Promise<void> {
+    if (!isUuid(id)) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    const result = await this.sql`
+      update reports set
+        status = 'archived',
+        description = null,
+        reporter_first_name = null,
+        reporter_email_encrypted = null,
+        reporter_email_hash = null,
+        position = null,
+        public_position = null,
+        verification_token_hash = null,
+        verification_expires_at = null,
+        retained_month = ${retained.month},
+        cell_latitude = ${retained.cellLatitude},
+        cell_longitude = ${retained.cellLongitude},
+        anonymised_at = ${now}
+      where id = ${id}
+    `;
+
+    if (result.count === 0) {
+      throw new Error(`No such report: ${id}`);
+    }
+  }
+
+  /** Numeric columns come back as strings; only present once anonymised. */
+  private toRetained(row: ReportRow): AnonymisedReport | null {
+    if (
+      row.retained_month === null ||
+      row.cell_latitude === null ||
+      row.cell_longitude === null
+    ) {
+      return null;
+    }
+
+    return {
+      categoryId: row.category,
+      countryCode: row.country_code.trim(),
+      timeOfDayId: row.time_of_day,
+      cellLatitude: Number(row.cell_latitude),
+      cellLongitude: Number(row.cell_longitude),
+      month: row.retained_month,
+      confirmationCount: row.confirmation_count,
+    };
   }
 
   private toReport(row: ReportRow): StoredReport {
@@ -190,7 +281,10 @@ export class PostgresReportRepository implements ReportRepository {
       customCategoryLabel: row.custom_category_label,
       description: row.description,
       timeOfDay: row.time_of_day,
-      position: { latitude: row.latitude, longitude: row.longitude },
+      position:
+        row.latitude === null || row.longitude === null
+          ? null
+          : { latitude: row.latitude, longitude: row.longitude },
       publicPosition:
         row.public_latitude === null || row.public_longitude === null
           ? null
@@ -211,6 +305,8 @@ export class PostgresReportRepository implements ReportRepository {
       expiresAt: row.expires_at,
       flagCount: row.flag_count,
       confirmationCount: row.confirmation_count,
+      retained: this.toRetained(row),
+      anonymisedAt: row.anonymised_at,
     };
   }
 }

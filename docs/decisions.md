@@ -22,6 +22,7 @@ accounts; email verification instead. Reports auto-delete after six months.
 | Photos | **Not in the first usable build.** Uploads are the most expensive and legally riskiest part (EXIF stripping, re-encoding, automated screening, storage). They become their own stage after the test launch, once the rest works. |
 | Domain | **safebackpack.app**, registered 2026-08-19 at GoDaddy. Verified with Resend the same day; not yet attached to Vercel. |
 | Sending address | **no-reply@safebackpack.app**. That mailbox does not receive — hello@safebackpack.app is where people write. |
+| Funding | Free to use. A buymeacoffee.com/safebackpack link exists but is **deliberately not on the site yet** — see §3. |
 | Contact | **hello@safebackpack.app** — shown on the site, and the address for privacy and takedown requests. |
 | Logo | Placeholder wordmark; a real identity comes before launch. |
 
@@ -106,9 +107,14 @@ Claude does not give legal advice; drafts are starting points only.
 
 Start on free tiers, but **only pick providers with a no-rewrite upgrade path**.
 
+Vercel's Hobby plan forbids commercial use, and a donation link is at best a
+grey area. So the buymeacoffee link stays off the site until the project moves
+to Pro. Decided 2026-08-19: launch free, add the link and the paid plan
+together, which is a switch rather than a change to the code.
+
 | Concern | Choice | Free tier | Upgrade path |
 |---|---|---|---|
-| Hosting / CI | Vercel | Hobby | Pro (~$20/mo) — required before any commercial use, adds WAF |
+| Hosting / CI | Vercel | Hobby | Pro (~$20/mo) |
 | Database | Postgres + PostGIS | Supabase Free, eu-west-1 (Ireland) | Paid plan, same connection string |
 | File storage | Supabase Storage | 1 GB | Paid plan |
 | Map tiles | **open — see §7** | | |
@@ -176,12 +182,25 @@ which is why introducing one later needs no rework. If accounts do arrive with
 the iOS app, they will be **passwordless** — emailed sign-in link or platform
 biometrics. No self-built password handling, ever.
 
-Reports are hard-deleted when they expire. To still allow annual risk reporting,
-each report is folded into an **anonymous aggregate** before deletion:
-month × country × category × coarse grid cell → count. No description, no
-photos, no email, no name, and no precise position survives. Because the
-aggregate carries no personal data, it can be kept indefinitely.
-See `src/lib/reports/archive.ts`.
+### Leaving the map means anonymisation, not deletion
+
+When a report's time is up it is **stripped, not removed**. Deleted: the email
+address, the reporter's name, the exact position and the free-text description.
+Retained indefinitely: category, country, home country, a 0.1° cell (~11 km),
+the month, the time of day and the confirmation count.
+
+Rationale: statistics and country profiles — with links to official advice such
+as the Swiss FDFA — are meant to come later, from questions nobody has asked
+yet. A pre-computed summary fixes today's questions in place forever, while an
+anonymised row keeps them open. The description does not survive because it is
+the field most likely to name somebody.
+
+A database constraint enforces that an anonymised row carries nothing personal,
+so no code path can leave half of it behind. The interface text says all of this
+plainly at the review step; a promise of deletion that is not kept would be a
+serious problem in a privacy notice, not a wording detail.
+
+See `src/lib/reports/anonymisation.ts` and migration `0004`.
 
 ## 6. Code structure, design and testing
 

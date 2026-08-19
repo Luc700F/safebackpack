@@ -179,7 +179,9 @@ export class ReportService {
     const report = await this.deps.repository.findByVerificationTokenHash(
       hashToken(token),
     );
-    if (!report || !report.verificationExpiresAt) {
+    // An anonymised report keeps no email hash and no token, so it can never
+    // match here — the check is for the type system as much as for safety.
+    if (!report || !report.verificationExpiresAt || !report.reporterEmailHash) {
       return { status: 'invalid_token' };
     }
 
@@ -218,8 +220,8 @@ export class ReportService {
 
   private async publish(id: string, now: Date): Promise<void> {
     const report = await this.deps.repository.findById(id);
-    if (!report) {
-      throw new Error(`No such report: ${id}`);
+    if (!report?.position) {
+      throw new Error(`No such report to publish: ${id}`);
     }
 
     await this.deps.repository.publish(id, {

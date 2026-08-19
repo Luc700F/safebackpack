@@ -8,6 +8,7 @@
 
 import { randomUUID } from 'node:crypto';
 
+import type { AnonymisedReport } from './anonymisation';
 import type {
   NewReport,
   PublicationDetails,
@@ -27,6 +28,8 @@ export class MemoryReportRepository implements ReportRepository {
       expiresAt: null,
       flagCount: 0,
       confirmationCount: 0,
+      retained: null,
+      anonymisedAt: null,
     };
 
     this.reports.set(stored.id, stored);
@@ -72,6 +75,60 @@ export class MemoryReportRepository implements ReportRepository {
 
     this.reports.set(id, published);
     return { ...published };
+  }
+
+  async findDueForAnonymisation(
+    now: Date,
+    limit: number,
+  ): Promise<StoredReport[]> {
+    return [...this.reports.values()]
+      .filter(
+        (report) =>
+          report.anonymisedAt === null &&
+          report.expiresAt !== null &&
+          report.expiresAt.getTime() <= now.getTime(),
+      )
+      .slice(0, limit)
+      .map((report) => ({ ...report }));
+  }
+
+  async anonymise(
+    id: string,
+    retained: AnonymisedReport,
+    now: Date,
+  ): Promise<void> {
+    const report = this.reports.get(id);
+    if (!report) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    this.reports.set(id, {
+      ...report,
+      status: 'archived',
+      description: null,
+      reporterFirstName: null,
+      reporterEmail: null,
+      reporterEmailHash: null,
+      position: null,
+      publicPosition: null,
+      verificationTokenHash: null,
+      verificationExpiresAt: null,
+      retained,
+      anonymisedAt: now,
+    });
+  }
+
+  /**
+   * Test helper: forces a stored report into a state the application would
+   * never write, so error paths can be exercised.
+   */
+  corrupt(id: string, patch: Partial<StoredReport>): void {
+    const report = this.reports.get(id);
+    if (!report) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    this.reports.set(id, { ...report, ...patch });
   }
 
   /** Test helper: every report, in insertion order. */

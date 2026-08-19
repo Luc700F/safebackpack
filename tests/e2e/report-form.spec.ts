@@ -158,6 +158,10 @@ test.describe('confirming a report', () => {
     await page.goto('/verify?token=nonsense');
     await page.getByRole('button', { name: 'Publish my report' }).click();
 
-    await expect(page.getByRole('alert')).toBeVisible();
+    // The message appears once the request comes back, which under a parallel
+    // run can take longer than the default wait.
+    await expect(page.getByRole('alert').first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });

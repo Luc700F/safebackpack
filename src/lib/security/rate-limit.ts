@@ -47,6 +47,12 @@ export const CONFIRMATIONS_PER_PERSON_PER_DAY: RateLimitRule = {
   windowMs: DAY_MS,
 };
 
+/** Place searches one network address may make per minute, while typing. */
+export const PLACE_SEARCHES_PER_IP_PER_MINUTE: RateLimitRule = {
+  limit: 40,
+  windowMs: 60 * 1000,
+};
+
 /** Verification emails one address may trigger per hour. */
 export const VERIFICATIONS_PER_EMAIL_PER_HOUR: RateLimitRule = {
   limit: 5,

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-import { readSigningConfig } from '@/lib/config/env';
 import { getReportService } from '@/lib/container';
 import { failure, success } from '@/lib/http/api-result';
 import { RECOGNITION_COOKIE, readCookie } from '@/lib/http/cookies';

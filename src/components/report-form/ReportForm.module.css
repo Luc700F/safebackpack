@@ -135,6 +135,23 @@
   font-size: var(--font-size-sm);
 }
 
+.manual {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+}
+
+.manualSummary {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.manual[open] .manualSummary {
+  margin-bottom: var(--space-4);
+}
+
 .mapSlot {
   display: grid;
   place-items: center;

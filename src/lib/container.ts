@@ -20,6 +20,8 @@ import { ResendEmailSender } from './email/resend';
 import type { EmailSender } from './email/types';
 import type { CountryLocator } from './geo/country-locator';
 import { StaticCountryLocator } from './geo/country-locator';
+import type { Geocoder } from './geo/photon-geocoder';
+import { PhotonGeocoder } from './geo/photon-geocoder';
 import { PostgisCountryLocator } from './geo/postgis-country-locator';
 import { MemoryReportRepository } from './reports/memory-repository';
 import { PostgresReportRepository } from './reports/postgres-repository';
@@ -29,6 +31,8 @@ import { MemoryRateLimitStore } from './security/rate-limit-store';
 import { RateLimiter } from './security/rate-limiter';
 
 let service: ReportService | null = null;
+let geocoder: Geocoder | null = null;
+let rateLimiter: RateLimiter | null = null;
 let recordingSender: RecordingEmailSender | null = null;
 let memoryRepository: MemoryReportRepository | null = null;
 
@@ -41,7 +45,7 @@ export function getReportService(): ReportService {
     repository: buildRepository(signing.secret),
     emailSender: buildEmailSender(),
     countryLocator: buildCountryLocator(),
-    rateLimiter: new RateLimiter(new MemoryRateLimitStore()),
+    rateLimiter: getRateLimiter(),
     secret: signing.secret,
     siteUrl: signing.siteUrl,
   });
@@ -49,6 +53,17 @@ export function getReportService(): ReportService {
   warnAboutPlaceholders();
 
   return service;
+}
+
+/** Shared so every endpoint counts against the same buckets. */
+export function getRateLimiter(): RateLimiter {
+  rateLimiter ??= new RateLimiter(new MemoryRateLimitStore());
+  return rateLimiter;
+}
+
+export function getGeocoder(): Geocoder {
+  geocoder ??= new PhotonGeocoder();
+  return geocoder;
 }
 
 function buildRepository(secret: string): ReportRepository {

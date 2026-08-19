@@ -11,6 +11,10 @@ async function fillIncidentStep(page: Page) {
 }
 
 async function fillLocationStep(page: Page) {
+  // The manual fields live behind a disclosure, for people who already have
+  // coordinates or cannot use a map. Driving them keeps this test about the
+  // form rather than about MapLibre.
+  await page.getByText('Enter coordinates instead').click();
   await page.getByRole('textbox', { name: 'Latitude' }).fill('13.75630');
   await page.getByRole('textbox', { name: 'Longitude' }).fill('100.50180');
   await page.getByRole('button', { name: 'Continue' }).click();

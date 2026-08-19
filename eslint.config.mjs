@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated output, not source.
     "coverage/**",
+    // Copied from node_modules before dev and build; not ours to lint.
+    "public/vendor/**",
     "playwright-report/**",
     "test-results/**",
   ]),

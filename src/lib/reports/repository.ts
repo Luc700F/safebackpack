@@ -8,7 +8,7 @@
 
 import type { Coordinates } from '../geo/coordinates';
 import type { AnonymisedReport } from './anonymisation';
-import type { Confirmation, ConfirmationKind } from './confirmations';
+import type { Confirmation } from './confirmations';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
 

@@ -15,10 +15,14 @@ export type Sql = postgres.Sql;
 
 let sql: Sql | null = null;
 
-export function getSql(): Sql {
+/**
+ * `url` is passed only by the database tests, which must never fall back to
+ * the application's own connection.
+ */
+export function getSql(url?: string): Sql {
   if (sql) return sql;
 
-  sql = postgres(readDatabaseConfig().url, {
+  sql = postgres(url ?? readDatabaseConfig().url, {
     max: 4,
     idle_timeout: 20,
     connect_timeout: 10,

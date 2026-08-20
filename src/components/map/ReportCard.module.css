@@ -19,8 +19,11 @@
 
   inset-inline: var(--space-3);
   bottom: var(--space-3);
-  max-height: 70%;
+  /* Leave the upper half of the map visible: a card that covers the map hides
+     the one thing the reader opened it to locate. */
+  max-height: 55%;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @media (min-width: 48rem) {

@@ -2,24 +2,25 @@
 import { afterAll, describe, it } from 'vitest';
 
 import { closeSql, getSql } from '../db/client';
+import { readTestDatabaseUrl } from '../db/test-database';
 import { PostgresReportRepository } from './postgres-repository';
 import { describeReportRepository } from './repository-contract';
 
 /**
  * Runs the shared repository contract against a real database.
  *
- * Skipped when DATABASE_URL is absent, so the suite stays runnable on a
- * machine with no database — but the moment one is configured, the Postgres
- * store must satisfy exactly what the in-memory one does.
+ * This suite empties tables between cases, so it runs only against a database
+ * of its own — see src/lib/db/test-database.ts. Without TEST_DATABASE_URL it
+ * skips, which keeps the suite runnable anywhere.
  */
-const databaseUrl = process.env.DATABASE_URL?.trim();
+const databaseUrl = readTestDatabaseUrl();
 
 if (!databaseUrl) {
   describe('PostgresReportRepository', () => {
-    it.skip('needs DATABASE_URL to run', () => undefined);
+    it.skip('needs TEST_DATABASE_URL to run', () => undefined);
   });
 } else {
-  const sql = getSql();
+  const sql = getSql(databaseUrl);
   const repository = new PostgresReportRepository(sql, 'test-secret');
 
   describeReportRepository('PostgresReportRepository', async () => ({

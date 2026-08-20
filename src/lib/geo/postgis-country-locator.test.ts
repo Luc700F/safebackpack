@@ -2,20 +2,21 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { closeSql, getSql } from '../db/client';
+import { readTestDatabaseUrl } from '../db/test-database';
 import { PostgisCountryLocator } from './postgis-country-locator';
 
 /**
- * Runs against the real database. Skipped without DATABASE_URL, because the
- * boundaries only exist there.
+ * Runs against a database of its own — never the one the application uses.
+ * See src/lib/db/test-database.ts.
  */
-const databaseUrl = process.env.DATABASE_URL?.trim();
+const databaseUrl = readTestDatabaseUrl();
 
 if (!databaseUrl) {
   describe('PostgisCountryLocator', () => {
-    it.skip('needs DATABASE_URL to run', () => undefined);
+    it.skip('needs TEST_DATABASE_URL to run', () => undefined);
   });
 } else {
-  const locator = new PostgisCountryLocator(getSql());
+  const locator = new PostgisCountryLocator(getSql(databaseUrl));
 
   describe('PostgisCountryLocator', () => {
     it.each([

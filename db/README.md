@@ -37,9 +37,14 @@ npm run db:build-boundaries -- /tmp/ne50.geojson
 npm run test:db
 ```
 
-Runs the repository contract and the country lookup against `DATABASE_URL`.
-These tests skip themselves when no database is configured, so `npm run verify`
-stays runnable on a machine without one.
+Runs the repository contract and the country lookup against **`TEST_DATABASE_URL`**,
+never `DATABASE_URL`. These tests empty tables between cases, so pointing them
+at a database anybody relies on destroys its contents — which is why they refuse
+to run when the two connection strings name the same database.
+
+Set up a second, empty database, run the migrations and the country seed against
+it, and put its connection string in `TEST_DATABASE_URL`. Without it the tests
+skip themselves, so `npm run verify` stays runnable anywhere.
 
 ## Conventions
 

@@ -98,10 +98,28 @@ async function main(): Promise<void> {
 
     for (const [index, demo] of DEMOS.entries()) {
       const published = new Date(Date.now() - demo.daysAgo * 86_400_000);
-      // 60 days, or 30 from a recent confirmation, capped at 90. Kept in step
-      // with src/lib/reports/retention.ts.
-      const lifetime = Math.min(demo.confirmations > 0 ? 90 : 60, 90);
-      const expires = new Date(published.getTime() + lifetime * 86_400_000);
+
+      // Confirmed somewhere between publication and now, so the cards show a
+      // plausible "last confirmed" rather than nothing.
+      const lastConfirmed =
+        demo.confirmations > 0
+          ? new Date(
+              published.getTime() +
+                (Date.now() - published.getTime()) * 0.7,
+            )
+          : null;
+
+      // 60 days, or 30 from the last confirmation, capped at 90 from
+      // publication. Kept in step with src/lib/reports/retention.ts.
+      const expires = new Date(
+        Math.min(
+          Math.max(
+            published.getTime() + 60 * 86_400_000,
+            lastConfirmed ? lastConfirmed.getTime() + 30 * 86_400_000 : 0,
+          ),
+          published.getTime() + 90 * 86_400_000,
+        ),
+      );
 
       // Displaced roughly the way the application displaces a real position.
       const offset = () => (Math.random() - 0.5) * 0.0018;
@@ -112,7 +130,8 @@ async function main(): Promise<void> {
           position, public_position, country_code,
           reporter_first_name, reporter_home_country, publish_anonymously,
           reporter_email_hash,
-          occurred_at, created_at, published_at, expires_at, confirmation_count
+          occurred_at, created_at, published_at, expires_at,
+          confirmation_count, last_confirmed_at
         ) values (
           'published', ${demo.category}, ${demo.customLabel ?? null},
           ${demo.description}, ${demo.timeOfDay},
@@ -121,7 +140,8 @@ async function main(): Promise<void> {
           ${demo.country},
           ${demo.name}, ${demo.home}, ${demo.name === null},
           ${demoHash(index)},
-          ${published}, ${published}, ${published}, ${expires}, ${demo.confirmations}
+          ${published}, ${published}, ${published}, ${expires},
+          ${demo.confirmations}, ${lastConfirmed}
         )
       `;
     }

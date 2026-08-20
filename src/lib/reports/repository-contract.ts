@@ -36,6 +36,8 @@ function draft(overrides: Partial<NewReport> = {}): NewReport {
     verificationExpiresAt: new Date(NOW.getTime() + 30 * 60 * 1000),
     occurredAt: NOW,
     createdAt: NOW,
+    screeningDecision: 'publish' as const,
+    screeningReasons: [],
     ...overrides,
   };
 }

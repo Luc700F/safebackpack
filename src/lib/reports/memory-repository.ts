@@ -100,6 +100,20 @@ export class MemoryReportRepository implements ReportRepository {
       .map((report) => ({ ...report }));
   }
 
+  async holdForReview(id: string): Promise<void> {
+    const report = this.reports.get(id);
+    if (!report) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    this.reports.set(id, {
+      ...report,
+      status: 'held_for_review',
+      verificationTokenHash: null,
+      verificationExpiresAt: null,
+    });
+  }
+
   async findConfirmations(reportId: string): Promise<Confirmation[]> {
     return (this.confirmations.get(reportId) ?? []).map((entry) => ({
       ...entry,

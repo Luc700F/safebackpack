@@ -30,6 +30,8 @@ function stored(overrides: Partial<StoredReport> = {}): StoredReport {
     flagCount: 0,
     confirmationCount: 3,
     lastConfirmedAt: null,
+    screeningDecision: 'publish',
+    screeningReasons: [],
     retained: null,
     anonymisedAt: null,
     ...overrides,

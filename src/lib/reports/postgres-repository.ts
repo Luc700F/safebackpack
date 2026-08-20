@@ -20,6 +20,7 @@ import type {
   ReportStatus,
   StoredReport,
 } from './repository';
+import type { ScreeningDecision } from '../moderation/screening';
 import type { AnonymisedReport } from './anonymisation';
 import type { Confirmation, ConfirmationKind } from './confirmations';
 import type { ReportCategoryId } from './categories';
@@ -52,6 +53,8 @@ interface ReportRow {
   flag_count: number;
   confirmation_count: number;
   last_confirmed_at: Date | null;
+  screening_decision: ScreeningDecision;
+  screening_reasons: string[];
   retained_month: string | null;
   cell_latitude: string | null;
   cell_longitude: string | null;
@@ -81,7 +84,8 @@ export class PostgresReportRepository implements ReportRepository {
         reporter_first_name, reporter_home_country, publish_anonymously,
         reporter_email_encrypted, reporter_email_hash,
         verification_token_hash, verification_expires_at,
-        occurred_at, created_at
+        occurred_at, created_at,
+        screening_decision, screening_reasons
       ) values (
         ${report.status}, ${report.categoryId}, ${report.customCategoryLabel},
         ${report.description}, ${report.timeOfDay},
@@ -91,7 +95,8 @@ export class PostgresReportRepository implements ReportRepository {
         ${report.publishAnonymously},
         ${seal(report.reporterEmail, this.secret)}, ${report.reporterEmailHash},
         ${report.verificationTokenHash}, ${report.verificationExpiresAt},
-        ${report.occurredAt}, ${report.createdAt}
+        ${report.occurredAt}, ${report.createdAt},
+        ${report.screeningDecision}, ${report.screeningReasons}
       )
       returning
         id, status, category, custom_category_label, description, time_of_day,
@@ -104,6 +109,7 @@ export class PostgresReportRepository implements ReportRepository {
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
         flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
         retained_month, cell_latitude, cell_longitude, anonymised_at
     `;
 
@@ -125,6 +131,7 @@ export class PostgresReportRepository implements ReportRepository {
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
         flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports where id = ${id}
     `;
@@ -147,6 +154,7 @@ export class PostgresReportRepository implements ReportRepository {
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
         flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports where verification_token_hash = ${hash}
     `;
@@ -185,6 +193,7 @@ export class PostgresReportRepository implements ReportRepository {
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
         flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
         retained_month, cell_latitude, cell_longitude, anonymised_at
     `;
 
@@ -211,6 +220,7 @@ export class PostgresReportRepository implements ReportRepository {
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
         flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports
       where status = 'published'
@@ -222,6 +232,24 @@ export class PostgresReportRepository implements ReportRepository {
     `;
 
     return rows.map((row) => this.toReport(row));
+  }
+
+  async holdForReview(id: string): Promise<void> {
+    if (!isUuid(id)) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    const result = await this.sql`
+      update reports set
+        status = 'held_for_review',
+        verification_token_hash = null,
+        verification_expires_at = null
+      where id = ${id}
+    `;
+
+    if (result.count === 0) {
+      throw new Error(`No such report: ${id}`);
+    }
   }
 
   async findConfirmations(reportId: string): Promise<Confirmation[]> {
@@ -311,6 +339,7 @@ export class PostgresReportRepository implements ReportRepository {
         verification_token_hash, verification_expires_at,
         occurred_at, created_at, published_at, expires_at,
         flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports
       where anonymised_at is null
@@ -409,6 +438,8 @@ export class PostgresReportRepository implements ReportRepository {
       flagCount: row.flag_count,
       confirmationCount: row.confirmation_count,
       lastConfirmedAt: row.last_confirmed_at,
+      screeningDecision: row.screening_decision,
+      screeningReasons: row.screening_reasons ?? [],
       retained: this.toRetained(row),
       anonymisedAt: row.anonymised_at,
     };

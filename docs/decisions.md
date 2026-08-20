@@ -155,6 +155,9 @@ post-moderation carries too much legal and abuse risk.
 - Email addresses are stored encrypted and deleted with the report.
 - IP addresses are stored hashed, for rate limiting only, at most 7 days.
 - Data is stored in an EU region.
+- Vercel Analytics and Speed Insights are enabled. Both are cookieless and
+  store no visitor identifier, so no consent banner is required and the privacy
+  notice can still say nothing follows anybody around. Added 2026-08-20.
 
 ### Visibility is earned, not granted
 

@@ -1,3 +1,5 @@
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { headers } from 'next/headers';
@@ -26,6 +28,9 @@ export const viewport: Viewport = {
   ],
 };
 
+/** Set by the platform on every Vercel deployment, and by nothing else. */
+const onVercel = Boolean(process.env.VERCEL);
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -38,7 +43,24 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/*
+          Both are cookieless and store no identifier for a visitor, which is
+          why they need no consent banner and why the privacy notice can still
+          say nothing follows anybody around. Their scripts are served from our
+          own origin, so the content security policy needs no exception.
+
+          Rendered only on Vercel: their endpoints exist nowhere else, so
+          anywhere else these are two requests that can only 404.
+        */}
+        {onVercel && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
+      </body>
     </html>
   );
 }

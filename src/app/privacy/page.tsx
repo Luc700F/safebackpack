@@ -37,7 +37,10 @@ export default function PrivacyPage() {
         <section className={styles.section}>
           <h2 className={styles.heading}>The short version</h2>
           <ul className={styles.list}>
-            <li>No account, no tracking, no advertising, no analytics cookies.</li>
+            <li>
+              No account, no advertising, and nothing that follows you from
+              site to site.
+            </li>
             <li>
               Your email address is used once, to confirm your report, and is
               never shown to anyone.
@@ -102,6 +105,17 @@ export default function PrivacyPage() {
             signed token that lets you file and confirm reports for 30 days
             without going back to your inbox. It holds no readable data about
             you and is not used to track anything.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.heading}>Measurement</h2>
+          <p className={styles.text}>
+            We count page views and page speed through Vercel Analytics and
+            Speed Insights. Neither sets a cookie, neither stores an identifier
+            for you, and neither can recognise you on a later visit or on
+            another site. What they produce is a number of visits per page, not
+            a record of anybody.
           </p>
         </section>
 

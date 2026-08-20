@@ -18,6 +18,7 @@
 .brand {
   display: inline-flex;
   align-items: center;
+  min-height: var(--tap-target);
   gap: var(--space-2);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
@@ -46,7 +47,10 @@
 }
 
 .reportButton {
-  padding: var(--space-2) var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  padding: var(--space-2) var(--space-5);
   border: none;
   border-radius: var(--radius-pill);
   background-color: var(--color-accent);

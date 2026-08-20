@@ -30,7 +30,8 @@
 }
 
 .primary {
-  padding: var(--space-3) var(--space-5);
+  min-height: var(--tap-target);
+  padding: var(--space-3) var(--space-6);
   border: none;
   border-radius: var(--radius-pill);
   background-color: var(--color-accent);
@@ -49,7 +50,8 @@
 }
 
 .secondary {
-  padding: var(--space-3) var(--space-5);
+  min-height: var(--tap-target);
+  padding: var(--space-3) var(--space-6);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   background-color: transparent;
@@ -145,6 +147,9 @@
 }
 
 .manualSummary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-target);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   cursor: pointer;

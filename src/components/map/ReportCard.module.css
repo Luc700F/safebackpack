@@ -75,8 +75,8 @@
 
 .close {
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: var(--tap-target);
+  height: var(--tap-target);
   display: grid;
   place-items: center;
   border: 1px solid var(--color-border);
@@ -142,6 +142,7 @@
 
 .action {
   flex: 1 1 auto;
+  min-height: var(--tap-target);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);

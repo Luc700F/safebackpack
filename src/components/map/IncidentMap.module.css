@@ -38,10 +38,26 @@
 .wrapper :global(.maplibregl-ctrl-group) {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* MapLibre ships 29px buttons, which is below any reasonable tap target. */
+.wrapper :global(.maplibregl-ctrl-group button) {
+  width: var(--tap-target);
+  height: var(--tap-target);
 }
 
 .wrapper :global(.maplibregl-ctrl-attrib) {
   font-size: var(--font-size-xs);
+}
+
+/* MapLibre's attribution toggle. The attribution links inside it stay small on
+   purpose: they are required credit, set as running text, and enlarging them
+   would put a bar of links across the map. */
+.wrapper :global(.maplibregl-ctrl-attrib-button) {
+  width: var(--tap-target);
+  height: var(--tap-target);
+  background-position: center;
 }
 
 .wrapper :global(.maplibregl-popup-content) {

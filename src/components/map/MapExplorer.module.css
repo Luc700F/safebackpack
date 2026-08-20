@@ -35,6 +35,7 @@
 .chip {
   display: inline-flex;
   align-items: center;
+  min-height: var(--tap-target);
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-border-strong);
@@ -83,14 +84,15 @@
 .viewToggle {
   display: flex;
   gap: var(--space-1);
-  padding: var(--space-1);
+  padding: 0;
   border-radius: var(--radius-pill);
   background-color: var(--color-grey-100);
   align-self: flex-start;
 }
 
 .viewOption {
-  padding: var(--space-2) var(--space-4);
+  min-height: var(--tap-target);
+  padding: var(--space-2) var(--space-5);
   border: 0;
   border-radius: var(--radius-pill);
   background: none;

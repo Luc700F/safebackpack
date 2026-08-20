@@ -167,6 +167,10 @@
   --easing-standard: cubic-bezier(0.2, 0, 0.1, 1);
 
   /* ---- Layout ----------------------------------------------------------- */
+  /* Anything a finger has to hit is at least this tall. WCAG asks for 24px;
+   * a thumb on a moving bus wants more. */
+  --tap-target: 2.75rem;
+
   --layout-max-width: 72rem;
   --layout-gutter: var(--space-4);
   --header-height: 4rem;

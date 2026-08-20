@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { headers } from 'next/headers';
 
 import '@/styles/global.css';
 
@@ -25,9 +26,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Reading a header opts every route into dynamic rendering, which a
+  // nonce-based Content-Security-Policy requires: a page rendered once at
+  // build time cannot carry a nonce that changes on every request. The cost is
+  // prerendering; the gain is that an injected script cannot run even if one
+  // ever slipped past React's escaping.
+  await headers();
+
   return (
     <html lang="en" className={inter.variable}>
       <body>{children}</body>

@@ -13,6 +13,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
+  // Every page renders dynamically now, which a nonce-based CSP requires, so
+  // pages take longer than a prerendered one under a parallel run.
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: 'on-first-retry',

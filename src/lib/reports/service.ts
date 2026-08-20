@@ -11,6 +11,7 @@
  */
 
 import type { EmailSender } from '../email/types';
+import type { Screener } from '../moderation/screening';
 import { buildVerificationEmail } from '../email/templates/verification';
 import type { CountryLocator } from '../geo/country-locator';
 import { fuzzCoordinates } from '../geo/coordinates';
@@ -49,6 +50,7 @@ export interface ReportServiceDependencies {
   emailSender: EmailSender;
   countryLocator: CountryLocator;
   rateLimiter: RateLimiter;
+  screener: Screener;
   /** Signs recognition tokens and keys the email hash. */
   secret: string;
   siteUrl: string;
@@ -152,6 +154,14 @@ export class ReportService {
     }
 
     const now = this.clock();
+
+    // Screened before anything is stored, so the verdict travels with the
+    // report and a held one can never reach the map by another route.
+    const verdict = await this.deps.screener.screen({
+      description: submission.description,
+      customCategoryLabel: submission.customCategoryLabel,
+    });
+
     const recognised = this.isRecognised(context.recognitionToken, emailHash);
     const verification = recognised ? null : createVerificationToken(now);
 
@@ -174,6 +184,8 @@ export class ReportService {
       verificationExpiresAt: verification?.expiresAt ?? null,
       occurredAt: now,
       createdAt: now,
+      screeningDecision: verdict.decision,
+      screeningReasons: verdict.reasons,
     });
 
     // A reporter who verified recently does not go back to their inbox.
@@ -360,6 +372,12 @@ export class ReportService {
     const report = await this.deps.repository.findById(id);
     if (!report?.position) {
       throw new Error(`No such report to publish: ${id}`);
+    }
+
+    // A confirmed email does not override the screening. Held means held.
+    if (report.screeningDecision === 'hold') {
+      await this.deps.repository.holdForReview(id);
+      return;
     }
 
     await this.deps.repository.publish(id, {

@@ -31,6 +31,8 @@ describe('MemoryReportRepository, beyond the shared contract', () => {
       verificationExpiresAt: new Date(),
       occurredAt: new Date(),
       createdAt: new Date(),
+      screeningDecision: 'publish' as const,
+      screeningReasons: [],
     });
 
     created.description = 'tampered';

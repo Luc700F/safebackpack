@@ -23,6 +23,7 @@ import { StaticCountryLocator } from './geo/country-locator';
 import type { Geocoder } from './geo/photon-geocoder';
 import { PhotonGeocoder } from './geo/photon-geocoder';
 import { PostgisCountryLocator } from './geo/postgis-country-locator';
+import { HeuristicScreener } from './moderation/screening';
 import { MemoryReportRepository } from './reports/memory-repository';
 import { PostgresReportRepository } from './reports/postgres-repository';
 import type { ReportRepository } from './reports/repository';
@@ -35,6 +36,7 @@ let geocoder: Geocoder | null = null;
 let rateLimiter: RateLimiter | null = null;
 let recordingSender: RecordingEmailSender | null = null;
 let memoryRepository: MemoryReportRepository | null = null;
+let jobRepository: ReportRepository | null = null;
 
 export function getReportService(): ReportService {
   if (service) return service;
@@ -46,6 +48,7 @@ export function getReportService(): ReportService {
     emailSender: buildEmailSender(),
     countryLocator: buildCountryLocator(),
     rateLimiter: getRateLimiter(),
+    screener: new HeuristicScreener(),
     secret: signing.secret,
     siteUrl: signing.siteUrl,
   });
@@ -69,10 +72,12 @@ export function getGeocoder(): Geocoder {
 function buildRepository(secret: string): ReportRepository {
   if (!hasDatabaseConfig()) {
     memoryRepository = new MemoryReportRepository();
+    jobRepository = memoryRepository;
     return memoryRepository;
   }
 
-  return new PostgresReportRepository(getSql(), secret);
+  jobRepository = new PostgresReportRepository(getSql(), secret);
+  return jobRepository;
 }
 
 function buildCountryLocator(): CountryLocator {
@@ -109,6 +114,15 @@ export function getRecordedEmails(): RecordingEmailSender | null {
 /** Development only: the in-memory store, when no database is configured. */
 export function getReportRepository(): MemoryReportRepository | null {
   return memoryRepository;
+}
+
+/**
+ * The store the scheduled jobs work on. Building the service first means the
+ * job and the app always share one repository rather than opening a second.
+ */
+export function getReportRepositoryForJobs(): ReportRepository {
+  getReportService();
+  return jobRepository!;
 }
 
 function warnAboutPlaceholders(): void {

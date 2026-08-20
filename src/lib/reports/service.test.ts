@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RecordingEmailSender } from '../email/fake';
+import { HeuristicScreener, PermissiveScreener } from '../moderation/screening';
 import { distanceMetres, FUZZ_RADIUS_METRES } from '../geo/coordinates';
 import { StaticCountryLocator } from '../geo/country-locator';
 import { MemoryRateLimitStore } from '../security/rate-limit-store';
@@ -43,6 +44,8 @@ function service(overrides: Record<string, unknown> = {}) {
     emailSender,
     countryLocator: new StaticCountryLocator('TH'),
     rateLimiter: new RateLimiter(store, () => clock),
+    // Most of these tests are about the report flow, not about screening.
+    screener: new PermissiveScreener(),
     secret: SECRET,
     siteUrl: 'https://safebackpack.app',
     clock: () => clock,
@@ -516,5 +519,81 @@ describe('confirm', () => {
       (24 * 60 * 60 * 1000);
 
     expect(lifetimeDays).toBe(90);
+  });
+});
+
+describe('screening', () => {
+  function screeningService() {
+    return new ReportService({
+      repository,
+      emailSender,
+      countryLocator: new StaticCountryLocator('TH'),
+      rateLimiter: new RateLimiter(store, () => clock),
+      screener: new HeuristicScreener(),
+      secret: SECRET,
+      siteUrl: 'https://safebackpack.app',
+      clock: () => clock,
+    });
+  }
+
+  const SUSPECT = submission({
+    description:
+      'A man called Peter Fischer took our money outside the station and never came back with the tickets.',
+  }) as Record<string, unknown>;
+
+  it('records the verdict with the report', async () => {
+    await screeningService().submit(SUSPECT, { ipHash: 'ip1' });
+
+    const [report] = repository.all();
+    expect(report.screeningDecision).toBe('hold');
+    expect(report.screeningReasons).toContain('appears to name a person');
+  });
+
+  it('still asks the reporter to confirm, so nothing looks rejected', async () => {
+    const outcome = await screeningService().submit(SUSPECT, { ipHash: 'ip1' });
+
+    expect(outcome.status).toBe('verification_sent');
+  });
+
+  it('holds it for review instead of publishing, even once confirmed', async () => {
+    const subject = screeningService();
+    await subject.submit(SUSPECT, { ipHash: 'ip1' });
+
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    const outcome = await subject.verify(url.searchParams.get('token')!);
+
+    expect(outcome.status).toBe('published');
+    expect(repository.all()[0].status).toBe('held_for_review');
+  });
+
+  it('keeps a held report off the map', async () => {
+    const subject = screeningService();
+    await subject.submit(SUSPECT, { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    await subject.verify(url.searchParams.get('token')!);
+
+    const visible = await subject.listPublished({ window: '90d' });
+    expect(visible.reports).toEqual([]);
+  });
+
+  it('publishes an ordinary report as before', async () => {
+    const subject = screeningService();
+    await subject.submit(submission(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    await subject.verify(url.searchParams.get('token')!);
+
+    expect(repository.all()[0].status).toBe('published');
+  });
+
+  it('does not let a recognised reporter skip screening', async () => {
+    const emailHash = hashEmail('traveller@example.com', SECRET);
+
+    const outcome = await screeningService().submit(SUSPECT, {
+      ipHash: 'ip1',
+      recognitionToken: createRecognitionToken(emailHash, SECRET, clock),
+    });
+
+    expect(outcome.status).toBe('published');
+    expect(repository.all()[0].status).toBe('held_for_review');
   });
 });

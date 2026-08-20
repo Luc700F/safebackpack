@@ -9,6 +9,7 @@
 import type { Coordinates } from '../geo/coordinates';
 import type { AnonymisedReport } from './anonymisation';
 import type { Confirmation } from './confirmations';
+import type { ScreeningDecision } from '../moderation/screening';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
 
@@ -63,6 +64,10 @@ export interface StoredReport {
    */
   lastConfirmedAt: Date | null;
 
+  /** What the automated screening decided, and why. */
+  screeningDecision: ScreeningDecision;
+  screeningReasons: string[];
+
   /** What survives anonymisation. Null while the report is still personal. */
   retained: AnonymisedReport | null;
   anonymisedAt: Date | null;
@@ -108,6 +113,12 @@ export interface ReportRepository {
   findByVerificationTokenHash(hash: string): Promise<StoredReport | null>;
   /** Marks a report published and clears its verification token. */
   publish(id: string, details: PublicationDetails): Promise<StoredReport>;
+
+  /**
+   * Puts a confirmed report in front of a person instead of on the map.
+   * Clears the verification token, so the link cannot be replayed.
+   */
+  holdForReview(id: string): Promise<void>;
 
   /** Published reports matching the query, newest first. */
   findPublished(query: PublishedReportQuery): Promise<StoredReport[]>;

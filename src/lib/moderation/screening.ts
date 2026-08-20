@@ -36,8 +36,21 @@ const LINK =
 const EMAIL = /\b[^\s@]+@[^\s@]+\.[a-z]{2,}\b/i;
 /** Seven or more digits in a row, or grouped, reads as a phone number. */
 const PHONE = /(?:\+?\d[\s()-]?){7,}/;
-/** Two capitalised words in a row often names a person. Weak on its own. */
-const FULL_NAME = /\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\b/;
+/**
+ * A capitalised name introduced by a word that only ever introduces a person.
+ *
+ * The obvious rule — two capitalised words in a row — is useless here. In
+ * travel writing that is `Khao San Road`, `Grand Palace`, `Chiang Mai`: it
+ * held six out of seven realistic reports when it was tried. A screener that
+ * holds ordinary reports is worse than none, so this only fires when the text
+ * says outright that a person is being named.
+ *
+ * It will miss a bare `Peter Fischer took our money`. That is the right side
+ * to fail on: a missed one is seen by readers who can flag it, while a held
+ * one is seen by nobody.
+ */
+const NAMED_PERSON =
+  /\b(?:called|named|name (?:is|was)|mr\.?|mrs\.?|ms\.?|dr\.?|officer|guide|driver named)\s+[A-Z][a-z]{2,}/i;
 
 /**
  * Words that mark abuse rather than a report. Kept short on purpose: a long
@@ -57,11 +70,10 @@ export class HeuristicScreener implements Screener {
     if (PHONE.test(text)) reasons.push('contains something like a phone number');
     if (containsSlur(text)) reasons.push('contains abusive language');
 
-    // A full name is the most common way a report turns into an accusation
-    // against a person. Held, not dropped: "Officer John Smith" and "Khao San
-    // Road" both match patterns like this, and only a person can tell which is
-    // which.
-    if (FULL_NAME.test(text)) reasons.push('appears to name a person');
+    // Naming an individual is the most common way a report turns into an
+    // accusation. Held rather than dropped, because whether a name belongs in
+    // a report is a judgement no pattern can make.
+    if (NAMED_PERSON.test(text)) reasons.push('appears to name a person');
 
     if (isMostlyShouting(report.description)) {
       reasons.push('written mostly in capitals');

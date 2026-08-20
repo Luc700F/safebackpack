@@ -30,15 +30,6 @@ describe('HeuristicScreener', () => {
     expect(verdict.reasons.length).toBeGreaterThan(0);
   });
 
-  it('holds a report that names a person', async () => {
-    const verdict = await decide(
-      'A man called Peter Fischer took our money and never came back.',
-    );
-
-    expect(verdict.decision).toBe('hold');
-    expect(verdict.reasons).toContain('appears to name a person');
-  });
-
   it('holds abusive language', async () => {
     const verdict = await decide(
       'The taxi driver was a complete bitch about the fare and drove off angrily.',
@@ -100,6 +91,32 @@ describe('HeuristicScreener', () => {
         decision: 'publish',
       });
     }
+  });
+
+  // The rule that fires on two capitalised words in a row held six of these
+  // seven when it was tried. Place names are everywhere in travel writing, and
+  // a screener that holds ordinary reports is worse than no screener.
+  it.each([
+    ['Pickpockets work the crowd on Khao San Road after dark, especially near the bars.'],
+    ['A man outside the Grand Palace said it was closed and offered a tuk-tuk tour instead.'],
+    ['The night bus from Chiang Mai to Pai stops at an unlit layby for an hour.'],
+    ['Bag snatched from a table at a cafe on Las Ramblas while I was reading the menu.'],
+    ['Strong currents at Kuta Beach this week, two rescues while we were there.'],
+    ['Roadblocks around Plaza Italia during the strike, metro closed with no warning.'],
+  ])('publishes a report that merely mentions a place: %s', async (description) => {
+    await expect(decide(description)).resolves.toMatchObject({
+      decision: 'publish',
+    });
+  });
+
+  it.each([
+    ['A man called Peter Fischer took our money and never came back with the tickets.'],
+    ['Our guide Marco left us at the border and stopped answering the phone.'],
+    ['The officer Rodriguez demanded a fine and would not give a receipt for it.'],
+  ])('holds a report that says outright it is naming somebody: %s', async (description) => {
+    const verdict = await decide(description);
+    expect(verdict.decision).toBe('hold');
+    expect(verdict.reasons).toContain('appears to name a person');
   });
 });
 

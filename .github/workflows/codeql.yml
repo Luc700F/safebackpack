@@ -1,19 +1,17 @@
 name: CodeQL
 
-# Currently manual only, and not by choice.
-#
-# Code scanning is free on public repositories and a paid add-on (GitHub
-# Advanced Security) on private ones. This repository is private, so CodeQL
-# analyses the code correctly and is then refused when it tries to file the
-# results — a check that can only ever be red.
-#
-# A permanently failing check teaches everyone to ignore red, which costs more
-# than the check is worth. So it runs on request until one of these is true:
-#   * the repository is made public, which makes scanning free, or
-#   * Advanced Security is purchased.
-#
-# To restore it, put back the push, pull_request and schedule triggers below.
+# Code scanning is free on public repositories and a paid add-on on private
+# ones. This repository was private for a while, during which CodeQL analysed
+# the code correctly and was then refused when filing the results — a check
+# that could only ever be red. It is public again, so this runs normally.
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, so newly published rules reach an untouched codebase too.
+    - cron: '0 5 * * 1'
   workflow_dispatch:
 
 permissions:

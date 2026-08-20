@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
   security-events: write
+  # CodeQL reads the workflow run it belongs to when it reports results.
+  # Without this it analyses everything correctly and then fails on the upload
+  # with "Resource not accessible by integration".
+  actions: read
 
 jobs:
   analyze:

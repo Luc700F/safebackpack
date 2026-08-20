@@ -17,6 +17,28 @@ jobs:
   quality:
     name: Lint, types, unit tests
     runs-on: ubuntu-latest
+
+    # A real database, so the Postgres store and the country lookup are held to
+    # the same contract as the in-memory one on every pull request rather than
+    # only on a machine that happens to have one configured.
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: safebackpack_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CI_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/safebackpack_test
+
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -26,7 +48,21 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run test:coverage
+
+      - name: Prepare the test database
+        # DATABASE_URL only for these steps: the test suite refuses to run when
+        # it and TEST_DATABASE_URL name the same database, which is the guard
+        # that stops a test run emptying a real one.
+        env:
+          DATABASE_URL: ${{ env.CI_DATABASE_URL }}
+        run: |
+          npm run db:migrate
+          npm run db:seed-countries
+
+      - name: Unit tests with coverage
+        env:
+          TEST_DATABASE_URL: ${{ env.CI_DATABASE_URL }}
+        run: npm run test:coverage
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4

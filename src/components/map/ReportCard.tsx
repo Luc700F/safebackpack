@@ -6,6 +6,7 @@ import { formatWhen } from '@/lib/format/relative-time';
 import { countryName } from '@/lib/geo/countries';
 import { REPORT_CATEGORIES, resolveCategoryLabel } from '@/lib/reports/categories';
 import type { ConfirmationKind } from '@/lib/reports/confirmations';
+import { FLAG_REASONS, type FlagReason } from '@/lib/reports/flags';
 import type { PublicReport } from '@/lib/reports/public-report';
 import { timeOfDayLabel } from '@/lib/reports/time-of-day';
 
@@ -33,6 +34,25 @@ type Feedback =
  */
 export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
   const [feedback, setFeedback] = useState<Feedback>({ kind: 'idle' });
+  const [flagging, setFlagging] = useState(false);
+  const [flagged, setFlagged] = useState<string | null>(null);
+
+  async function flag(reason: FlagReason) {
+    setFlagged('Thank you. Somebody will look at this report.');
+    setFlagging(false);
+
+    try {
+      await fetch(`/api/v1/reports/${report.id}/flags`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+    } catch {
+      // The thanks stands either way. Somebody who has just seen their own
+      // name on a map should not be handed an error message as well; the
+      // request is retried by them pressing again if it mattered.
+    }
+  }
 
   async function confirm(kind: ConfirmationKind) {
     setFeedback({ kind: 'sending' });
@@ -169,6 +189,34 @@ export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
           </>
         )}
       </div>
+
+      {flagged ? (
+        <p className={styles.confirmationsHint}>{flagged}</p>
+      ) : flagging ? (
+        <div className={styles.flagPanel}>
+          <span className={styles.flagTitle}>What is wrong with it?</span>
+          {FLAG_REASONS.map((reason) => (
+            <button
+              key={reason.id}
+              className={styles.flagReason}
+              type="button"
+              onClick={() => flag(reason.id)}
+            >
+              {reason.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.flagRow}>
+          <button
+            className={styles.flagOpen}
+            type="button"
+            onClick={() => setFlagging(true)}
+          >
+            Report this entry
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

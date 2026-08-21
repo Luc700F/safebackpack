@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { AnonymisedReport } from './anonymisation';
 import type { Confirmation } from './confirmations';
+import type { FlagReason } from './flags';
 import type {
   NewReport,
   PublishedReportQuery,
@@ -21,6 +22,7 @@ import type {
 export class MemoryReportRepository implements ReportRepository {
   private readonly reports = new Map<string, StoredReport>();
   private readonly confirmations = new Map<string, Confirmation[]>();
+  private readonly flags = new Map<string, Map<string, FlagReason>>();
 
   async create(report: NewReport): Promise<StoredReport> {
     const stored: StoredReport = {
@@ -98,6 +100,34 @@ export class MemoryReportRepository implements ReportRepository {
       )
       .slice(0, query.limit)
       .map((report) => ({ ...report }));
+  }
+
+  async addFlag(input: {
+    reportId: string;
+    reason: FlagReason;
+    reporterIpHash: string;
+    createdAt: Date;
+  }): Promise<number> {
+    const report = this.reports.get(input.reportId);
+    if (!report) {
+      throw new Error(`No such report: ${input.reportId}`);
+    }
+
+    const existing = this.flags.get(input.reportId) ?? new Map();
+    existing.set(input.reporterIpHash, input.reason);
+    this.flags.set(input.reportId, existing);
+
+    this.reports.set(input.reportId, { ...report, flagCount: existing.size });
+    return existing.size;
+  }
+
+  async hideAfterFlags(reportId: string): Promise<void> {
+    const report = this.reports.get(reportId);
+    if (!report) {
+      throw new Error(`No such report: ${reportId}`);
+    }
+
+    this.reports.set(reportId, { ...report, status: 'held_for_review' });
   }
 
   async holdForReview(id: string): Promise<void> {
@@ -240,5 +270,6 @@ export class MemoryReportRepository implements ReportRepository {
   clear(): void {
     this.reports.clear();
     this.confirmations.clear();
+    this.flags.clear();
   }
 }

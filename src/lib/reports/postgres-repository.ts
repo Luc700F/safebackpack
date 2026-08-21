@@ -22,6 +22,7 @@ import type {
 } from './repository';
 import type { ScreeningDecision } from '../moderation/screening';
 import type { AnonymisedReport } from './anonymisation';
+import type { FlagReason } from './flags';
 import type { Confirmation, ConfirmationKind } from './confirmations';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
@@ -232,6 +233,62 @@ export class PostgresReportRepository implements ReportRepository {
     `;
 
     return rows.map((row) => this.toReport(row));
+  }
+
+  async addFlag(input: {
+    reportId: string;
+    reason: FlagReason;
+    reporterIpHash: string;
+    createdAt: Date;
+  }): Promise<number> {
+    if (!isUuid(input.reportId)) {
+      throw new Error(`No such report: ${input.reportId}`);
+    }
+
+    // One machine counts once per report. Pressing the button again updates
+    // the reason rather than adding a vote, which is what the unique
+    // constraint is there to guarantee even under a race.
+    await this.sql`
+      insert into report_flags (report_id, reason, reporter_ip_hash, created_at)
+      values (
+        ${input.reportId}, ${input.reason}, ${input.reporterIpHash},
+        ${input.createdAt}
+      )
+      on conflict (report_id, reporter_ip_hash)
+      do update set reason = excluded.reason
+    `;
+
+    const [row] = await this.sql<{ count: number }[]>`
+      update reports
+      set flag_count = (
+        select count(*)::int from report_flags
+        where report_flags.report_id = reports.id
+      )
+      where id = ${input.reportId}
+      returning flag_count as count
+    `;
+
+    if (!row) {
+      throw new Error(`No such report: ${input.reportId}`);
+    }
+
+    return row.count;
+  }
+
+  async hideAfterFlags(reportId: string): Promise<void> {
+    if (!isUuid(reportId)) {
+      throw new Error(`No such report: ${reportId}`);
+    }
+
+    const result = await this.sql`
+      update reports set status = 'held_for_review'
+      where id = ${reportId} and status = 'published'
+    `;
+
+    if (result.count === 0) {
+      // Already hidden, retired or gone. Nothing to do and nothing wrong.
+      return;
+    }
   }
 
   async holdForReview(id: string): Promise<void> {

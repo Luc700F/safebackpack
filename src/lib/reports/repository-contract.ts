@@ -324,6 +324,64 @@ export function describeReportRepository(
       });
     });
 
+    describe('flags', () => {
+      async function published(): Promise<string> {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, publication);
+        return created.id;
+      }
+
+      const flag = (reportId: string, reporterIpHash: string) => ({
+        reportId,
+        reason: 'inaccurate' as const,
+        reporterIpHash,
+        createdAt: NOW,
+      });
+
+      it('counts a reader objection', async () => {
+        const id = await published();
+
+        await expect(repository.addFlag(flag(id, 'reader-1'))).resolves.toBe(1);
+        expect((await repository.findById(id))?.flagCount).toBe(1);
+      });
+
+      it('counts different readers separately', async () => {
+        const id = await published();
+
+        await repository.addFlag(flag(id, 'reader-1'));
+        await expect(repository.addFlag(flag(id, 'reader-2'))).resolves.toBe(2);
+      });
+
+      it('counts one machine once, however often it presses', async () => {
+        const id = await published();
+
+        await repository.addFlag(flag(id, 'the-same-reader'));
+        await expect(
+          repository.addFlag(flag(id, 'the-same-reader')),
+        ).resolves.toBe(1);
+      });
+
+      it('takes a flagged report off the map', async () => {
+        const id = await published();
+        await repository.hideAfterFlags(id);
+
+        expect((await repository.findById(id))?.status).toBe('held_for_review');
+      });
+
+      it('does nothing when the report is already off the map', async () => {
+        const id = await published();
+        await repository.hideAfterFlags(id);
+
+        await expect(repository.hideAfterFlags(id)).resolves.toBeUndefined();
+      });
+
+      it('throws when flagging a report that does not exist', async () => {
+        await expect(
+          repository.addFlag(flag('00000000-0000-4000-8000-000000000000', 'r')),
+        ).rejects.toThrow();
+      });
+    });
+
     describe('anonymisation', () => {
       const expired = {
         ...publication,

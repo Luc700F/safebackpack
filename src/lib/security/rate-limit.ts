@@ -68,6 +68,16 @@ export const ADMIN_SIGN_IN_PER_IP_PER_HOUR: RateLimitRule = {
   windowMs: 60 * 60 * 1000,
 };
 
+/**
+ * Flags one network address may raise per day. Generous, because flagging is
+ * open to anyone and a reader working through a bad afternoon on the map is
+ * doing exactly what we want.
+ */
+export const FLAGS_PER_IP_PER_DAY: RateLimitRule = {
+  limit: 20,
+  windowMs: DAY_MS,
+};
+
 /** Verification emails one address may trigger per hour. */
 export const VERIFICATIONS_PER_EMAIL_PER_HOUR: RateLimitRule = {
   limit: 5,

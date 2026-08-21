@@ -101,6 +101,19 @@ export function readRateLimitStoreConfig(
 }
 
 /**
+ * True when a report can be read by something as well as matched by patterns.
+ * Without it the heuristics are the whole of the screening.
+ */
+export function hasClassifierConfig(source: EnvSource = process.env): boolean {
+  return Boolean(source.OPENAI_API_KEY?.trim());
+}
+
+export function readClassifierApiKey(source: EnvSource = process.env): string {
+  assertServerSide();
+  return required(source, 'OPENAI_API_KEY');
+}
+
+/**
  * True when abuse limits have somewhere shared to count. Without it they are
  * counted per serverless instance, which on a platform that starts a new one
  * per request means they are not counted at all.

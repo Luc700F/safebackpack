@@ -10,9 +10,11 @@
  */
 
 import {
+  hasClassifierConfig,
   hasDatabaseConfig,
   hasEmailConfig,
   hasRateLimitStoreConfig,
+  readClassifierApiKey,
   readRateLimitStoreConfig,
   readSigningConfig,
 } from './config/env';
@@ -25,6 +27,9 @@ import { StaticCountryLocator } from './geo/country-locator';
 import type { Geocoder } from './geo/photon-geocoder';
 import { PhotonGeocoder } from './geo/photon-geocoder';
 import { PostgisCountryLocator } from './geo/postgis-country-locator';
+import { CompositeScreener } from './moderation/composite-screener';
+import { OpenAiClassifier } from './moderation/openai-classifier';
+import type { Screener } from './moderation/screening';
 import { HeuristicScreener } from './moderation/screening';
 import { MemoryReportRepository } from './reports/memory-repository';
 import { PostgresReportRepository } from './reports/postgres-repository';
@@ -52,7 +57,7 @@ export function getReportService(): ReportService {
     emailSender: buildEmailSender(),
     countryLocator: buildCountryLocator(),
     rateLimiter: getRateLimiter(),
-    screener: new HeuristicScreener(),
+    screener: buildScreener(),
     secret: signing.secret,
     siteUrl: signing.siteUrl,
   });
@@ -66,6 +71,21 @@ export function getReportService(): ReportService {
 export function getRateLimiter(): RateLimiter {
   rateLimiter ??= new RateLimiter(buildRateLimitStore());
   return rateLimiter;
+}
+
+function buildScreener(): Screener {
+  const heuristics = new HeuristicScreener();
+
+  if (!hasClassifierConfig()) {
+    // Patterns alone. They catch links, addresses and shouting; they cannot
+    // tell whether text is abusive, which is what the classifier is for.
+    return heuristics;
+  }
+
+  return new CompositeScreener(
+    heuristics,
+    new OpenAiClassifier({ apiKey: readClassifierApiKey() }),
+  );
 }
 
 function buildRateLimitStore(): RateLimitStore {
@@ -156,6 +176,10 @@ function warnAboutPlaceholders(): void {
     placeholders.push(
       'abuse limits are counted in memory, so they do not hold across instances',
     );
+  }
+
+  if (!hasClassifierConfig()) {
+    placeholders.push('reports are screened by patterns only, nothing reads them');
   }
 
   if (placeholders.length === 0) return;

@@ -104,6 +104,12 @@ test.describe('home page', () => {
 test.describe('site navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+
+    // Wait for the client to take over before typing anything. The map is
+    // loaded only in the browser, so its canvas appearing proves hydration
+    // ran — and a keystroke sent before that goes nowhere, which is what made
+    // the country search test fail under parallel load.
+    await page.locator('.maplibregl-map').waitFor({ timeout: 30_000 });
   });
 
   test('offers the statistics, about and legal pages', async ({ page }) => {
@@ -150,13 +156,29 @@ test.describe('site navigation', () => {
 
   test('filters to a country from the search box', async ({ page }) => {
     await page.getByLabel('Search a country or a place').fill('Thail');
+
+    // "Thailand Country", not /Thailand/. The looser pattern also matched the
+    // place suggestions — "Bangkok, Thailand" — which arrive from the geocoder
+    // a third of a second later and rebuild the list underneath the click.
+    // That made this test fail about one run in three.
     await page
       .getByRole('list', { name: 'Search results' })
-      .getByRole('button', { name: /Thailand/ })
+      .getByRole('button', { name: 'Thailand Country' })
       .click();
 
     await expect(page).toHaveURL(/country=TH/);
     await expect(page.getByText(/showing thailand only/i)).toBeVisible();
+  });
+
+  test('tells a country apart from a place with the same name', async ({
+    page,
+  }) => {
+    await page.getByLabel('Search a country or a place').fill('Thail');
+
+    const results = page.getByRole('list', { name: 'Search results' });
+    await expect(
+      results.getByRole('button', { name: 'Thailand Country' }),
+    ).toBeVisible();
   });
 });
 

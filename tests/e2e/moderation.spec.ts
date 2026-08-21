@@ -18,7 +18,12 @@ test.describe('the moderation queue', () => {
 
     // The message appears once the request comes back, which under a parallel
     // run can take longer than the default wait.
-    await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
+    // The message itself, not the role: Next.js keeps a route announcer in the
+    // page that also carries role="alert", so the generic locator matches two
+    // elements and Playwright refuses to guess between them.
+    await expect(page.getByText('That password is not right.')).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByLabel('Password')).toBeVisible();
   });
 

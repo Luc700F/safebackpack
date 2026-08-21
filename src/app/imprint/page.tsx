@@ -13,9 +13,14 @@ export const metadata: Metadata = {
 /**
  * Legal notice.
  *
- * The operating entity is not decided yet, so the fields that depend on it are
- * marked rather than invented. Publishing an imprint with made-up details
- * would be worse than publishing none.
+ * Operated by a private individual in Switzerland. The address is a home
+ * address and is published because an imprint requires a real postal one — a
+ * post box does not satisfy it.
+ *
+ * TODO before wider promotion: establish whether Article 27 GDPR requires a
+ * representative in the EU. A Swiss operator whose site is plainly aimed at
+ * travellers in the EU can fall under it, and there is no representative named
+ * here. This needs a lawyer, not a guess.
  */
 export default function ImprintPage() {
   return (
@@ -26,17 +31,24 @@ export default function ImprintPage() {
         <p className={styles.lede}>Who is responsible for this site.</p>
 
         <p className={styles.draft}>
-          Draft. The operating entity has not been settled, so the details below
-          are incomplete. They will be filled in and reviewed by a lawyer before
-          SafeBackpack is announced publicly.
+          Reviewed by a lawyer? Not yet. The details below are accurate, but the
+          wording has not been checked by anybody qualified to check it.
         </p>
 
         <section className={styles.section}>
           <h2 className={styles.heading}>Operator</h2>
           <p className={styles.text}>
-            {/* TODO: legal name, address and — if a company — register number
-                and VAT id, once the operating entity is decided. */}
-            To be completed.
+            Luca Fries
+            <br />
+            Lindenstrasse 13
+            <br />
+            5632 Buttwil
+            <br />
+            Switzerland
+          </p>
+          <p className={styles.text}>
+            SafeBackpack is run by a private individual, not a company. It is
+            free, carries no advertising, and is not a commercial service.
           </p>
         </section>
 

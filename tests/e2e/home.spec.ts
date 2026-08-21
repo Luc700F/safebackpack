@@ -159,3 +159,45 @@ test.describe('site navigation', () => {
     await expect(page.getByText(/showing thailand only/i)).toBeVisible();
   });
 });
+
+test.describe('legal pages', () => {
+  test('the imprint names a person and a postal address', async ({ page }) => {
+    await page.goto('/imprint');
+
+    await expect(page.getByText('Luca Fries')).toBeVisible();
+    await expect(page.getByText('Lindenstrasse 13')).toBeVisible();
+    await expect(page.getByText('Switzerland')).toBeVisible();
+  });
+
+  test('the imprint offers a way to object to a report', async ({ page }) => {
+    await page.goto('/imprint');
+
+    await expect(
+      page.getByRole('link', { name: 'hello@safebackpack.app' }).first(),
+    ).toBeVisible();
+  });
+
+  test('the privacy notice names who is responsible', async ({ page }) => {
+    await page.goto('/privacy');
+
+    await expect(
+      page.getByRole('heading', { name: 'Who is responsible' }),
+    ).toBeVisible();
+    await expect(page.getByText(/Luca Fries, Lindenstrasse 13/)).toBeVisible();
+  });
+
+  test('the privacy notice says where to complain', async ({ page }) => {
+    await page.goto('/privacy');
+
+    await expect(
+      page.getByRole('link', { name: /Data Protection and Information/ }),
+    ).toBeVisible();
+  });
+
+  test('both say plainly that no lawyer has checked them', async ({ page }) => {
+    for (const path of ['/imprint', '/privacy']) {
+      await page.goto(path);
+      await expect(page.getByText(/Reviewed by a lawyer\? Not yet/)).toBeVisible();
+    }
+  });
+});

@@ -61,6 +61,45 @@ function assertServerSide(): void {
   }
 }
 
+export class InsecureSiteUrlError extends Error {
+  constructor(value: string) {
+    super(
+      `NEXT_PUBLIC_SITE_URL must be an https:// address, not ${value}. ` +
+        'Verification links are built from it, and a plaintext link carries a ' +
+        'one-time token that publishes a report.',
+    );
+    this.name = 'InsecureSiteUrlError';
+  }
+}
+
+/** Development runs without TLS, and upgrading localhost only breaks it. */
+function isLocalHost(host: string): boolean {
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+}
+
+/**
+ * Refuses a site URL that is not https, unless it is localhost.
+ *
+ * This is not tidiness. The address is what verification links are built from,
+ * and an `http://` link sends the token that publishes somebody's report over
+ * the wire in the clear before any redirect can help. The mistake is invisible
+ * once made — the site works, the mail arrives, the link opens — so it is
+ * caught here rather than trusted to be got right.
+ */
+function requireSecureUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new InsecureSiteUrlError(value);
+  }
+
+  if (url.protocol === 'https:') return value;
+  if (url.protocol === 'http:' && isLocalHost(url.hostname)) return value;
+
+  throw new InsecureSiteUrlError(value);
+}
+
 export function readSigningConfig(
   source: EnvSource = process.env,
 ): SigningConfig {
@@ -68,7 +107,7 @@ export function readSigningConfig(
 
   return {
     secret: required(source, 'RECOGNITION_SECRET'),
-    siteUrl: required(source, 'NEXT_PUBLIC_SITE_URL'),
+    siteUrl: requireSecureUrl(required(source, 'NEXT_PUBLIC_SITE_URL')),
   };
 }
 

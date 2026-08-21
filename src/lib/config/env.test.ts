@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  InsecureSiteUrlError,
   MissingConfigError,
   hasDatabaseConfig,
   hasEmailConfig,
@@ -171,5 +172,57 @@ describe('readRateLimitStoreConfig', () => {
       hasRateLimitStoreConfig({ ...WITH_STORE, UPSTASH_REDIS_REST_TOKEN: '' }),
     ).toBe(false);
     expect(hasRateLimitStoreConfig(COMPLETE)).toBe(false);
+  });
+});
+
+describe('the site address has to be https', () => {
+  const secret = { RECOGNITION_SECRET: 'a-secret' };
+
+  it('accepts the live address', () => {
+    expect(
+      readSigningConfig({
+        ...secret,
+        NEXT_PUBLIC_SITE_URL: 'https://www.safebackpack.app',
+      }).siteUrl,
+    ).toBe('https://www.safebackpack.app');
+  });
+
+  it.each([
+    ['localhost', 'http://localhost:3000'],
+    ['the loopback address', 'http://127.0.0.1:3000'],
+  ])('still allows %s, which has no TLS to offer', (_case, value) => {
+    expect(
+      readSigningConfig({ ...secret, NEXT_PUBLIC_SITE_URL: value }).siteUrl,
+    ).toBe(value);
+  });
+
+  it('refuses a plaintext address for the live site', () => {
+    // The mistake this exists for: it was set to exactly this in production,
+    // and everything looked fine while verification tokens went out in clear.
+    expect(() =>
+      readSigningConfig({
+        ...secret,
+        NEXT_PUBLIC_SITE_URL: 'http://safebackpack.app',
+      }),
+    ).toThrow(InsecureSiteUrlError);
+  });
+
+  it.each([
+    ['a bare hostname', 'safebackpack.app'],
+    ['nonsense', 'not a url'],
+    ['another scheme', 'ftp://safebackpack.app'],
+  ])('refuses %s', (_case, value) => {
+    expect(() =>
+      readSigningConfig({ ...secret, NEXT_PUBLIC_SITE_URL: value }),
+    ).toThrow(InsecureSiteUrlError);
+  });
+
+  it('names the variable and says why, so the fix is obvious', () => {
+    expect(() =>
+      readSigningConfig({
+        ...secret,
+        NEXT_PUBLIC_SITE_URL: 'http://safebackpack.app',
+      }),
+    ).toThrow(/NEXT_PUBLIC_SITE_URL must be an https/);
   });
 });

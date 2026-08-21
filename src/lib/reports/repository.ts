@@ -100,8 +100,12 @@ export interface PublicationDetails {
 
 /** What the map and the list view ask for. */
 export interface PublishedReportQuery {
-  /** Oldest publication timestamp to include. */
-  publishedSince: Date;
+  /**
+   * Oldest incident date to include — the day it happened, not the day it was
+   * published. Those are the same for almost every report, and a reader asking
+   * for "the past week" means the past week of incidents either way.
+   */
+  occurredSince: Date;
   /** Empty or absent means every category. */
   categories?: readonly ReportCategoryId[];
   countryCode?: string;

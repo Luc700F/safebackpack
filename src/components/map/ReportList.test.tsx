@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import { localCalendarDate } from '@/lib/reports/incident-date';
 import type { PublicReport } from '@/lib/reports/public-report';
 
 import { ReportList } from './ReportList';
@@ -12,6 +13,7 @@ function report(overrides: Partial<PublicReport> = {}): PublicReport {
     categoryId: 'theft',
     customCategoryLabel: null,
     description: 'Bag snatched near the night market entrance.',
+    occurredOn: localCalendarDate(new Date()),
     timeOfDay: 'night',
     latitude: 13.757,
     longitude: 100.502,

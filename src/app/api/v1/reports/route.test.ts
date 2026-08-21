@@ -1,12 +1,15 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { utcCalendarDate } from '@/lib/reports/incident-date';
+
 const VALID = {
   description:
     'Two men on a scooter grabbed my bag near the night market entrance and rode off towards the river.',
   categoryId: 'theft',
   latitude: 13.7563,
   longitude: 100.5018,
+  occurredOn: utcCalendarDate(new Date()),
   timeOfDay: 'night',
   reporterFirstName: 'Luca',
   homeCountry: 'CH',

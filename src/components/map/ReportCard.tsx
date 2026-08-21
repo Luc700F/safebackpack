@@ -7,6 +7,7 @@ import { countryName } from '@/lib/geo/countries';
 import { REPORT_CATEGORIES, resolveCategoryLabel } from '@/lib/reports/categories';
 import type { ConfirmationKind } from '@/lib/reports/confirmations';
 import { FLAG_REASONS, type FlagReason } from '@/lib/reports/flags';
+import { utcCalendarDate } from '@/lib/reports/incident-date';
 import type { PublicReport } from '@/lib/reports/public-report';
 import { timeOfDayLabel } from '@/lib/reports/time-of-day';
 
@@ -95,6 +96,10 @@ export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
   const category = REPORT_CATEGORIES.find(
     (entry) => entry.id === report.categoryId,
   );
+  // Almost always the same day. When they differ the reader is told both, so
+  // "3 weeks ago" can never be read as "reported 3 weeks ago" or the reverse.
+  const backdated =
+    report.occurredOn !== utcCalendarDate(new Date(report.publishedAt));
   const busy = feedback.kind === 'sending';
   const answered = feedback.kind === 'done';
 
@@ -127,7 +132,10 @@ export function ReportCard({ report, onClose, onConfirmed }: ReportCardProps) {
       <div className={styles.facts}>
         <span>{countryName(report.countryCode)}</span>
         <span>{timeOfDayLabel(report.timeOfDay)}</span>
-        <span>{formatWhen(report.publishedAt)}</span>
+        <span>{formatWhen(report.occurredOn)}</span>
+        {backdated && (
+          <span>Reported {formatWhen(report.publishedAt).toLowerCase()}</span>
+        )}
       </div>
 
       <p className={styles.description}>{report.description}</p>

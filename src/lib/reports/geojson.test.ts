@@ -9,6 +9,7 @@ function report(overrides: Partial<PublicReport> = {}): PublicReport {
     categoryId: 'theft',
     customCategoryLabel: null,
     description: 'Bag snatched near the market.',
+    occurredOn: '2026-08-19',
     timeOfDay: 'night',
     latitude: 13.757,
     longitude: 100.502,

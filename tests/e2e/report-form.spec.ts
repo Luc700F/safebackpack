@@ -3,6 +3,21 @@ import { expect, test, type Page } from '@playwright/test';
 const DESCRIPTION =
   'Two men on a scooter grabbed my bag near the night market entrance and rode off towards the river.';
 
+/** The reporter's own local day, which is what the form offers by default. */
+function today(): string {
+  return daysAgo(0);
+}
+
+function daysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return [
+    String(date.getFullYear()).padStart(4, '0'),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 async function fillIncidentStep(page: Page) {
   await page.getByRole('radio', { name: /Pickpocketing or theft/ }).check();
   await page.getByRole('radio', { name: /Night/ }).check();
@@ -32,6 +47,29 @@ async function fillReporterStep(page: Page) {
 test.describe('filing a report', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
+  });
+
+  test('fills the day in with today, and lets it be changed', async ({
+    page,
+  }) => {
+    const day = page.getByLabel('Day it happened');
+
+    // The default is written after the page comes alive, not rendered on the
+    // server, so the value appears a moment after the field does.
+    await expect(day).toHaveValue(today());
+
+    await day.fill(daysAgo(3));
+    await expect(day).toHaveValue(daysAgo(3));
+
+    await page.getByRole('radio', { name: /Pickpocketing or theft/ }).check();
+    await page.getByRole('radio', { name: /Night/ }).check();
+    await page.getByRole('textbox', { name: 'What happened' }).fill(DESCRIPTION);
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    // Nothing about a backdated day should block the form.
+    await expect(
+      page.getByRole('heading', { name: 'Where did it happen' }),
+    ).toBeVisible();
   });
 
   test('walks through all four steps and asks for confirmation', async ({

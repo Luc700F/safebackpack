@@ -11,6 +11,7 @@
  */
 
 import { type ReportCategoryId, severityOf } from './categories';
+import { utcCalendarDate } from './incident-date';
 import type { StoredReport } from './repository';
 import type { TimeOfDayId } from './time-of-day';
 
@@ -20,6 +21,12 @@ export interface PublicReport {
   /** The reporter's own wording, for the free-text category. */
   customCategoryLabel: string | null;
   description: string;
+  /**
+   * The day it happened, `YYYY-MM-DD`. Usually the day it was reported, but a
+   * traveller with no connection can date it back — so a reader is told when
+   * the incident was, not when the paperwork arrived.
+   */
+  occurredOn: string;
   timeOfDay: TimeOfDayId;
 
   /** The displaced position. The exact one never leaves the database. */
@@ -69,6 +76,7 @@ export function toPublicReport(report: StoredReport): PublicReport {
     categoryId: report.categoryId,
     customCategoryLabel: report.customCategoryLabel,
     description: report.description,
+    occurredOn: utcCalendarDate(report.occurredAt),
     timeOfDay: report.timeOfDay,
     latitude: report.publicPosition.latitude,
     longitude: report.publicPosition.longitude,

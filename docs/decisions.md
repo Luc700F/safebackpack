@@ -86,13 +86,36 @@ See `src/lib/reports/time-of-day.ts`.
 
 ### Time
 
-The submission date is also the incident date; there is no separate field in the
-form. The schema still keeps `occurredAt` as its own column defaulting to
-`publishedAt`, so allowing backdated incidents later is a form change rather
-than a migration.
+The form asks for the day it happened. It fills that in with today, which is
+what nearly every reporter will leave alone; the field is there for the
+traveller who had no connection until they got home. Decided 2026-08-21,
+replacing "submission date is also incident date" — the column was already
+there for exactly this, so it cost a form field rather than a migration.
 
-The "how recent" filter offers 24 hours, 1 week, 1 month, 3 months. The widest
-window equals the retention ceiling, so it always means "everything".
+Bounds: not further ahead than tomorrow in UTC, and not further back than the
+retention ceiling. The upper bound is tomorrow rather than today because the
+browser fills the field in from the reporter's *local* clock, which runs a day
+ahead of UTC as far east as Kiritimati; a day of slack buys a post-dater
+nothing. The lower bound is `MAX_RETENTION_DAYS` rather than a number of its
+own, because an incident older than the widest view the map offers has no
+window left to be seen in.
+
+Still a date and never a time. The hour is deliberately not collected — see
+*Time of day* — and adding one would undo on its own what the coarse bucket
+exists to protect.
+
+**The "how recent" filter reads the incident date, not the publication date.**
+It offers 24 hours, 1 week, 1 month, 3 months, and the widest window equals the
+retention ceiling. Filtering on publication would put last month's robbery under
+"past 24 hours" because the paperwork arrived today, and the card beside it
+would say "a month ago" — the filter and the report contradicting each other on
+the same screen. The consequence is accepted deliberately: a heavily backdated
+report is close to the edge of the widest window and so is visible only briefly.
+That is what it means for the map to be about recent risk.
+
+Retention is **not** moved. A report lives 60 days from publication whatever day
+it describes: backdating says when something happened, and neither buys nor
+costs time on the map. There is a test holding that line.
 
 ## 2. Legal entity — OPEN
 

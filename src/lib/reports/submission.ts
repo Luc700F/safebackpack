@@ -13,6 +13,11 @@ import { z } from 'zod';
 
 import { isCountryCode } from '../geo/countries';
 import { REPORT_CATEGORIES, type ReportCategoryId } from './categories';
+import {
+  MAX_BACKDATE_DAYS,
+  isCalendarDate,
+  isWithinIncidentRange,
+} from './incident-date';
 import { TIMES_OF_DAY } from './time-of-day';
 
 export const DESCRIPTION_MIN_LENGTH = 50;
@@ -49,6 +54,7 @@ export const reportSubmissionSchema = z
       .optional(),
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
+    occurredOn: z.string().refine(isCalendarDate),
     timeOfDay: z.enum(timeOfDayIds),
     reporterFirstName: z
       .string()
@@ -78,7 +84,8 @@ const MESSAGES: Record<string, string> = {
     'Please name this type of risk in a few words, letters only.',
   latitude: 'Please pick a valid location.',
   longitude: 'Please pick a valid location.',
-  timeOfDay: 'Please choose when this happened.',
+  occurredOn: `Please give the day this happened — today, or up to ${MAX_BACKDATE_DAYS} days ago.`,
+  timeOfDay: 'Please choose what time of day this happened.',
   reporterFirstName:
     'Please enter your first name — letters, spaces and hyphens only.',
   homeCountry: 'Please choose your home country.',
@@ -95,11 +102,24 @@ export type ValidationResult =
 /**
  * Validates raw input. Returns one message per offending field, keyed by field
  * name, so a form can show each error where it belongs.
+ *
+ * The clock is a parameter because one rule depends on it: how far back a
+ * report may be dated. Passing it in keeps that rule testable at a fixed
+ * moment instead of only on the day the test happens to run.
  */
-export function validateSubmission(input: unknown): ValidationResult {
+export function validateSubmission(
+  input: unknown,
+  now: Date = new Date(),
+): ValidationResult {
   const parsed = reportSubmissionSchema.safeParse(input);
 
   if (parsed.success) {
+    // The schema can tell a real date from a broken one, but not a plausible
+    // one from a date last year — that needs to know what day it is.
+    if (!isWithinIncidentRange(parsed.data.occurredOn, now)) {
+      return { ok: false, errors: { occurredOn: MESSAGES.occurredOn } };
+    }
+
     return { ok: true, value: parsed.data };
   }
 

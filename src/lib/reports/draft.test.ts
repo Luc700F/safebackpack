@@ -11,6 +11,7 @@ import {
   previousStep,
   validateDraft,
 } from './draft';
+import { localCalendarDate } from './incident-date';
 
 function complete(overrides: Partial<ReportDraft> = {}): ReportDraft {
   return {
@@ -18,6 +19,7 @@ function complete(overrides: Partial<ReportDraft> = {}): ReportDraft {
     customCategoryLabel: '',
     description:
       'Two men on a scooter grabbed my bag near the night market entrance and rode off towards the river.',
+    occurredOn: localCalendarDate(new Date()),
     timeOfDay: 'night',
     latitude: '13.7563',
     longitude: '100.5018',
@@ -80,6 +82,7 @@ describe('errorsForStep', () => {
     expect(Object.keys(errorsForStep(errors, 'incident')).sort()).toEqual([
       'categoryId',
       'description',
+      'occurredOn',
       'timeOfDay',
     ]);
     expect(Object.keys(errorsForStep(errors, 'location')).sort()).toEqual([
@@ -102,6 +105,7 @@ describe('isStepComplete', () => {
     const draft = {
       ...EMPTY_DRAFT,
       categoryId: 'theft',
+      occurredOn: localCalendarDate(new Date()),
       timeOfDay: 'night',
       description: complete().description,
     };

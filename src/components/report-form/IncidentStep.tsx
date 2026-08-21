@@ -1,10 +1,12 @@
 'use client';
 
 import { ChoiceField } from '@/components/form/ChoiceField';
+import { DateField } from '@/components/form/DateField';
 import { TextAreaField } from '@/components/form/TextAreaField';
 import { TextField } from '@/components/form/TextField';
 import { REPORT_CATEGORIES } from '@/lib/reports/categories';
 import type { ReportDraft } from '@/lib/reports/draft';
+import { incidentDateRange } from '@/lib/reports/incident-date';
 import {
   CUSTOM_LABEL_MAX_LENGTH,
   DESCRIPTION_MAX_LENGTH,
@@ -21,6 +23,10 @@ interface StepProps {
 }
 
 export function IncidentStep({ draft, errors, onChange }: StepProps) {
+  // Read once per render rather than per keystroke; the bounds only move at
+  // midnight, and a form nobody has open for a day does not need to notice.
+  const { earliest, latest } = incidentDateRange(new Date());
+
   return (
     <div className={styles.step}>
       <h2 className={styles.stepHeading}>What happened</h2>
@@ -52,6 +58,16 @@ export function IncidentStep({ draft, errors, onChange }: StepProps) {
           placeholder="Aggressive stray dogs"
         />
       )}
+
+      <DateField
+        label="Day it happened"
+        value={draft.occurredOn}
+        onChange={(occurredOn) => onChange({ occurredOn })}
+        error={errors.occurredOn}
+        min={earliest}
+        max={latest}
+        hint="Today unless you say otherwise. Change it if you are reporting something from an earlier day."
+      />
 
       <ChoiceField
         legend="Time of day"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 import {
   EMPTY_DRAFT,
@@ -13,6 +13,7 @@ import {
   previousStep,
   validateDraft,
 } from '@/lib/reports/draft';
+import { localCalendarDate } from '@/lib/reports/incident-date';
 import type { SubmissionErrors } from '@/lib/reports/submission';
 
 import { IncidentStep } from './IncidentStep';
@@ -22,13 +23,31 @@ import { ReporterStep } from './ReporterStep';
 import { ReviewStep } from './ReviewStep';
 import { Stepper } from './Stepper';
 
+/** The day never changes while a form is open, so there is nothing to watch. */
+const neverChanges = () => () => undefined;
+const readToday = () => localCalendarDate(new Date());
+const unknownOnServer = () => '';
+
 type Outcome =
   | { kind: 'verification_sent' }
   | { kind: 'published' }
   | { kind: 'error'; message: string };
 
 export function ReportForm() {
-  const [draft, setDraft] = useState<ReportDraft>(EMPTY_DRAFT);
+  const [entered, setDraft] = useState<ReportDraft>(EMPTY_DRAFT);
+
+  // Today has to be read from the reporter's own clock, and the server
+  // rendering this form has a different one — Vercel runs in UTC, which is
+  // yesterday for anybody east of it late in the evening. `useSyncExternalStore`
+  // is React's way of saying "the server cannot know this": it renders nothing
+  // there and the real day on the client, without a hydration mismatch.
+  const today = useSyncExternalStore(neverChanges, readToday, unknownOnServer);
+
+  // A default, not a value: the moment the reporter picks a day, theirs wins.
+  const draft: ReportDraft = entered.occurredOn
+    ? entered
+    : { ...entered, occurredOn: today };
+
   const [step, setStep] = useState<ReportStep>('incident');
   // Messages appear once a step has been attempted, not while it is being typed.
   const [showErrors, setShowErrors] = useState(false);

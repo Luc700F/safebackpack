@@ -9,6 +9,7 @@ import { MemoryRateLimitStore } from '../security/rate-limit-store';
 import { RateLimiter } from '../security/rate-limiter';
 import { hashEmail } from '../verification/email-hash';
 import { createRecognitionToken } from '../verification/recognition';
+import { utcCalendarDate } from './incident-date';
 import { MemoryReportRepository } from './memory-repository';
 import { BASE_RETENTION_DAYS } from './retention';
 import { ReportService } from './service';
@@ -24,6 +25,9 @@ function submission(overrides: Record<string, unknown> = {}): unknown {
     categoryId: 'theft',
     latitude: BANGKOK.latitude,
     longitude: BANGKOK.longitude,
+    // Read from the clock the test has set, so a report is always dated the
+    // day it is filed however far the suite has moved time forward.
+    occurredOn: utcCalendarDate(clock),
     timeOfDay: 'night',
     reporterFirstName: 'Luca',
     homeCountry: 'CH',
@@ -298,6 +302,37 @@ describe('verify', () => {
     );
   });
 
+  it('stores the day the reporter gave, not the moment they filed it', async () => {
+    await service().submit(submission({ occurredOn: '2026-08-09' }), {
+      ipHash: 'ip1',
+    });
+
+    const [report] = repository.all();
+    expect(report.occurredAt.toISOString()).toBe('2026-08-09T00:00:00.000Z');
+    // The paperwork still happened now, whatever day it describes.
+    expect(report.createdAt.getTime()).toBe(NOW.getTime());
+  });
+
+  it('counts retention from publication, never from the day described', async () => {
+    // A report about something ten days ago is not ten days closer to being
+    // deleted. Backdating says when it happened; it buys and costs no time.
+    const before = repository.all().length;
+    await service().submit(submission({ occurredOn: '2026-08-09' }), {
+      ipHash: 'ip1',
+    });
+    expect(repository.all()).toHaveLength(before + 1);
+
+    const token = emailSender.lastMessage!.text.match(
+      /verify\?token=([\w-]+)/,
+    )![1];
+    await service().verify(token);
+
+    const [report] = repository.all();
+    expect(report.expiresAt?.getTime()).toBe(
+      NOW.getTime() + BASE_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    );
+  });
+
   it('refuses a link that has already been used', async () => {
     const token = await submitAndTakeToken();
     const subject = service();
@@ -536,13 +571,14 @@ describe('screening', () => {
     });
   }
 
-  const SUSPECT = submission({
-    description:
-      'A man called Peter Fischer took our money outside the station and never came back with the tickets.',
-  }) as Record<string, unknown>;
+  const suspect = () =>
+    submission({
+      description:
+        'A man called Peter Fischer took our money outside the station and never came back with the tickets.',
+    }) as Record<string, unknown>;
 
   it('records the verdict with the report', async () => {
-    await screeningService().submit(SUSPECT, { ipHash: 'ip1' });
+    await screeningService().submit(suspect(), { ipHash: 'ip1' });
 
     const [report] = repository.all();
     expect(report.screeningDecision).toBe('hold');
@@ -550,14 +586,14 @@ describe('screening', () => {
   });
 
   it('still asks the reporter to confirm, so nothing looks rejected', async () => {
-    const outcome = await screeningService().submit(SUSPECT, { ipHash: 'ip1' });
+    const outcome = await screeningService().submit(suspect(), { ipHash: 'ip1' });
 
     expect(outcome.status).toBe('verification_sent');
   });
 
   it('holds it for review instead of publishing, even once confirmed', async () => {
     const subject = screeningService();
-    await subject.submit(SUSPECT, { ipHash: 'ip1' });
+    await subject.submit(suspect(), { ipHash: 'ip1' });
 
     const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
     const outcome = await subject.verify(url.searchParams.get('token')!);
@@ -568,7 +604,7 @@ describe('screening', () => {
 
   it('keeps a held report off the map', async () => {
     const subject = screeningService();
-    await subject.submit(SUSPECT, { ipHash: 'ip1' });
+    await subject.submit(suspect(), { ipHash: 'ip1' });
     const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
     await subject.verify(url.searchParams.get('token')!);
 
@@ -588,7 +624,7 @@ describe('screening', () => {
   it('does not let a recognised reporter skip screening', async () => {
     const emailHash = hashEmail('traveller@example.com', SECRET);
 
-    const outcome = await screeningService().submit(SUSPECT, {
+    const outcome = await screeningService().submit(suspect(), {
       ipHash: 'ip1',
       recognitionToken: createRecognitionToken(emailHash, SECRET, clock),
     });
@@ -612,14 +648,15 @@ describe('moderation', () => {
     });
   }
 
-  const SUSPECT = submission({
-    description:
-      'A man called Peter Fischer took our money outside the station and never came back with the tickets.',
-  }) as Record<string, unknown>;
+  const suspect = () =>
+    submission({
+      description:
+        'A man called Peter Fischer took our money outside the station and never came back with the tickets.',
+    }) as Record<string, unknown>;
 
   async function heldReport(): Promise<string> {
     const subject = screeningService();
-    await subject.submit(SUSPECT, { ipHash: 'ip1' });
+    await subject.submit(suspect(), { ipHash: 'ip1' });
     const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
     await subject.verify(url.searchParams.get('token')!);
     return repository.all()[0].id;

@@ -43,6 +43,7 @@ import {
   summarise,
 } from './confirmations';
 import { type FlagReason, shouldHide } from './flags';
+import { parseCalendarDate } from './incident-date';
 import { type PublicReport, toPublicReport } from './public-report';
 import type { ReportRepository, StoredReport } from './repository';
 import { type SubmissionErrors, validateSubmission } from './submission';
@@ -128,7 +129,8 @@ export class ReportService {
     input: unknown,
     context: SubmitContext,
   ): Promise<SubmitOutcome> {
-    const validation = validateSubmission(input);
+    const now = this.clock();
+    const validation = validateSubmission(input, now);
     if (!validation.ok) {
       return { status: 'invalid', errors: validation.errors };
     }
@@ -164,8 +166,6 @@ export class ReportService {
       return { status: 'location_unknown' };
     }
 
-    const now = this.clock();
-
     // Screened before anything is stored, so the verdict travels with the
     // report and a held one can never reach the map by another route.
     const verdict = await this.deps.screener.screen({
@@ -193,7 +193,8 @@ export class ReportService {
       reporterEmailHash: emailHash,
       verificationTokenHash: verification?.tokenHash ?? null,
       verificationExpiresAt: verification?.expiresAt ?? null,
-      occurredAt: now,
+      // Validation has already established this is a real date in range.
+      occurredAt: parseCalendarDate(submission.occurredOn)!,
       createdAt: now,
       screeningDecision: verdict.decision,
       screeningReasons: verdict.reasons,
@@ -272,7 +273,7 @@ export class ReportService {
     const now = this.clock();
 
     const reports = await this.deps.repository.findPublished({
-      publishedSince: ageWindowStart(window, now),
+      occurredSince: ageWindowStart(window, now),
       categories: parseCategories(query.categories),
       countryCode: parseCountry(query.country),
       limit,

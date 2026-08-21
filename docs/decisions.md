@@ -131,6 +131,24 @@ re-indexed on every cold start. The database already holds geometry and answers
 this in one indexed query. Until the database exists, `CountryLocator` has a
 static test implementation.
 
+### The framework preset lives in `vercel.json`
+
+Decided 2026-08-21, after the site served nothing for a day.
+
+The Vercel project had no framework preset. Vercel still ran `npm run build`, so
+the build log was flawless — Next.js compiled, listed all 21 routes and reported
+success — and then Vercel published `public/` as a static site and deployed no
+functions at all. Every page returned the platform's own `NOT_FOUND`, no request
+ever reached the application, and the runtime log stayed empty because nothing
+ran. The only reachable files were the two MapLibre workers and five leftover
+`create-next-app` graphics, which for that day were the entire website.
+
+A green build that deploys the wrong thing is the expensive kind of failure: the
+logs agree with you. So the preset is pinned in `vercel.json`, where it is part
+of the diff and survives anyone rebuilding the project. `vercel.json` overrides
+the dashboard, which makes the dashboard setting irrelevant rather than merely
+redundant.
+
 ## 4. Moderation
 
 **Automatic screening, then immediate publication.**

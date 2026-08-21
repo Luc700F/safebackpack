@@ -29,10 +29,28 @@ export default function PrivacyPage() {
         </p>
 
         <p className={styles.draft}>
-          Draft. The operating entity has not been settled, so the controller
-          details and the applicable supervisory authority are still missing.
-          A lawyer will review this before public launch.
+          Reviewed by a lawyer? Not yet. What follows describes exactly what the
+          software does, but the wording has not been checked by anybody
+          qualified to check it.
         </p>
+
+        <section className={styles.section}>
+          <h2 className={styles.heading}>Who is responsible</h2>
+          <p className={styles.text}>
+            Luca Fries, Lindenstrasse 13, 5632 Buttwil, Switzerland.
+            <br />
+            <a href="mailto:hello@safebackpack.app">hello@safebackpack.app</a>
+          </p>
+          <p className={styles.text}>
+            If you think your data has been handled wrongly, write to that
+            address. You may also complain to a supervisory authority: in
+            Switzerland the{' '}
+            <a href="https://www.edoeb.admin.ch/en" rel="noreferrer">
+              Federal Data Protection and Information Commissioner
+            </a>
+            , and in the European Union the authority where you live.
+          </p>
+        </section>
 
         <section className={styles.section}>
           <h2 className={styles.heading}>The short version</h2>

@@ -114,6 +114,23 @@ export class MemoryReportRepository implements ReportRepository {
     });
   }
 
+  async findHeldForReview(limit: number): Promise<StoredReport[]> {
+    return [...this.reports.values()]
+      .filter((report) => report.status === 'held_for_review')
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .slice(0, limit)
+      .map((report) => ({ ...report }));
+  }
+
+  async reject(id: string): Promise<void> {
+    const report = this.reports.get(id);
+    if (!report) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    this.reports.set(id, { ...report, status: 'rejected' });
+  }
+
   async findConfirmations(reportId: string): Promise<Confirmation[]> {
     return (this.confirmations.get(reportId) ?? []).map((entry) => ({
       ...entry,

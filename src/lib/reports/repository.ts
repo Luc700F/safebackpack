@@ -120,6 +120,12 @@ export interface ReportRepository {
    */
   holdForReview(id: string): Promise<void>;
 
+  /** The moderation queue: reports waiting for somebody to look at them. */
+  findHeldForReview(limit: number): Promise<StoredReport[]>;
+
+  /** Takes a report out of the queue for good. Not deleted: see the retention job. */
+  reject(id: string): Promise<void>;
+
   /** Published reports matching the query, newest first. */
   findPublished(query: PublishedReportQuery): Promise<StoredReport[]>;
 

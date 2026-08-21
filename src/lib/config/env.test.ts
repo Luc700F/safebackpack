@@ -6,9 +6,11 @@ import {
   MissingConfigError,
   hasDatabaseConfig,
   hasEmailConfig,
+  hasRateLimitStoreConfig,
   missingServerConfig,
   readDatabaseConfig,
   readEmailConfig,
+  readRateLimitStoreConfig,
   readSigningConfig,
 } from './env';
 
@@ -137,5 +139,37 @@ describe('missingServerConfig', () => {
 
   it('lists everything for an empty environment', () => {
     expect(missingServerConfig({})).toHaveLength(5);
+  });
+});
+
+describe('readRateLimitStoreConfig', () => {
+  const WITH_STORE = {
+    ...COMPLETE,
+    UPSTASH_REDIS_REST_URL: 'https://example.upstash.io',
+    UPSTASH_REDIS_REST_TOKEN: 'a-token',
+  };
+
+  it('reads the URL and the token', () => {
+    expect(readRateLimitStoreConfig(WITH_STORE)).toEqual({
+      url: 'https://example.upstash.io',
+      token: 'a-token',
+    });
+  });
+
+  it.each(['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'])(
+    'fails when %s is missing',
+    (variable) => {
+      expect(() =>
+        readRateLimitStoreConfig({ ...WITH_STORE, [variable]: undefined }),
+      ).toThrowError(MissingConfigError);
+    },
+  );
+
+  it('reports the store as available only when both are set', () => {
+    expect(hasRateLimitStoreConfig(WITH_STORE)).toBe(true);
+    expect(
+      hasRateLimitStoreConfig({ ...WITH_STORE, UPSTASH_REDIS_REST_TOKEN: '' }),
+    ).toBe(false);
+    expect(hasRateLimitStoreConfig(COMPLETE)).toBe(false);
   });
 });

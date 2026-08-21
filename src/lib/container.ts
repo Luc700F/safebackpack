@@ -12,6 +12,8 @@
 import {
   hasDatabaseConfig,
   hasEmailConfig,
+  hasRateLimitStoreConfig,
+  readRateLimitStoreConfig,
   readSigningConfig,
 } from './config/env';
 import { getSql } from './db/client';
@@ -28,8 +30,10 @@ import { MemoryReportRepository } from './reports/memory-repository';
 import { PostgresReportRepository } from './reports/postgres-repository';
 import type { ReportRepository } from './reports/repository';
 import { ReportService } from './reports/service';
+import type { RateLimitStore } from './security/rate-limit-store';
 import { MemoryRateLimitStore } from './security/rate-limit-store';
 import { RateLimiter } from './security/rate-limiter';
+import { UpstashRateLimitStore } from './security/upstash-rate-limit-store';
 
 let service: ReportService | null = null;
 let geocoder: Geocoder | null = null;
@@ -60,8 +64,19 @@ export function getReportService(): ReportService {
 
 /** Shared so every endpoint counts against the same buckets. */
 export function getRateLimiter(): RateLimiter {
-  rateLimiter ??= new RateLimiter(new MemoryRateLimitStore());
+  rateLimiter ??= new RateLimiter(buildRateLimitStore());
   return rateLimiter;
+}
+
+function buildRateLimitStore(): RateLimitStore {
+  if (!hasRateLimitStoreConfig()) {
+    // Fine on one machine, useless on a platform that starts a fresh instance
+    // per request: each one would begin counting from zero. The startup
+    // warning names it for exactly that reason.
+    return new MemoryRateLimitStore();
+  }
+
+  return new UpstashRateLimitStore(readRateLimitStoreConfig());
 }
 
 export function getGeocoder(): Geocoder {
@@ -135,6 +150,12 @@ function warnAboutPlaceholders(): void {
 
   if (!hasEmailConfig()) {
     placeholders.push('email is recorded rather than sent');
+  }
+
+  if (!hasRateLimitStoreConfig()) {
+    placeholders.push(
+      'abuse limits are counted in memory, so they do not hold across instances',
+    );
   }
 
   if (placeholders.length === 0) return;

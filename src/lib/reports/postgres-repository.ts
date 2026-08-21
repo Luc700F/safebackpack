@@ -252,6 +252,44 @@ export class PostgresReportRepository implements ReportRepository {
     }
   }
 
+  async findHeldForReview(limit: number): Promise<StoredReport[]> {
+    const rows = await this.sql<ReportRow[]>`
+      select
+        id, status, category, custom_category_label, description, time_of_day,
+        st_y(position::geometry) as latitude,
+        st_x(position::geometry) as longitude,
+        st_y(public_position::geometry) as public_latitude,
+        st_x(public_position::geometry) as public_longitude,
+        country_code, reporter_first_name, reporter_home_country,
+        publish_anonymously, reporter_email_encrypted, reporter_email_hash,
+        verification_token_hash, verification_expires_at,
+        occurred_at, created_at, published_at, expires_at,
+        flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
+      from reports
+      where status = 'held_for_review'
+      order by created_at
+      limit ${limit}
+    `;
+
+    return rows.map((row) => this.toReport(row));
+  }
+
+  async reject(id: string): Promise<void> {
+    if (!isUuid(id)) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    const result = await this.sql`
+      update reports set status = 'rejected' where id = ${id}
+    `;
+
+    if (result.count === 0) {
+      throw new Error(`No such report: ${id}`);
+    }
+  }
+
   async findConfirmations(reportId: string): Promise<Confirmation[]> {
     if (!isUuid(reportId)) return [];
 

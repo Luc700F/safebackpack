@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ADMIN_SIGN_IN_PER_IP_PER_HOUR,
   REPORTS_PER_EMAIL_PER_DAY,
   REPORTS_PER_IP_PER_DAY,
   type RateLimitState,
@@ -89,5 +90,16 @@ describe('consume', () => {
     const state = { count: RULE.limit, windowStart: NOW.getTime() };
     const decision = consume(state, RULE, minutesLater(0.999));
     expect(decision.retryAfterMs).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('moderation sign-in', () => {
+  it('leaves room for a person with a typo on two devices', () => {
+    expect(ADMIN_SIGN_IN_PER_IP_PER_HOUR.limit).toBeGreaterThanOrEqual(20);
+  });
+
+  it('stays far below anything useful for guessing', () => {
+    expect(ADMIN_SIGN_IN_PER_IP_PER_HOUR.limit).toBeLessThanOrEqual(50);
+    expect(ADMIN_SIGN_IN_PER_IP_PER_HOUR.windowMs).toBe(60 * 60 * 1000);
   });
 });

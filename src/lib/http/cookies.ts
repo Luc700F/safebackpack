@@ -6,9 +6,11 @@
  * visitor just used, it needs no consent banner.
  */
 
+import { ADMIN_SESSION_HOURS } from '../admin/session';
 import { RECOGNITION_DAYS } from '../verification/recognition';
 
 export const RECOGNITION_COOKIE = 'sb_recognition';
+export const ADMIN_COOKIE = 'sb_moderation';
 
 export interface CookieOptions {
   httpOnly: true;
@@ -29,6 +31,22 @@ export function recognitionCookieOptions(siteUrl: string): CookieOptions {
     sameSite: 'lax',
     path: '/',
     maxAge: RECOGNITION_DAYS * 24 * 60 * 60,
+  };
+}
+
+/**
+ * The moderation session. Stricter than the recognition cookie: it never needs
+ * to survive arriving from another site, so nothing cross-site carries it.
+ */
+export function adminCookieOptions(siteUrl: string): CookieOptions & {
+  sameSite: 'lax';
+} {
+  return {
+    httpOnly: true,
+    secure: siteUrl.startsWith('https://'),
+    sameSite: 'lax',
+    path: '/',
+    maxAge: ADMIN_SESSION_HOURS * 60 * 60,
   };
 }
 

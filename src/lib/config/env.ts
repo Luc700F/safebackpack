@@ -28,6 +28,11 @@ export interface DatabaseConfig {
   url: string;
 }
 
+export interface RateLimitStoreConfig {
+  url: string;
+  token: string;
+}
+
 export class MissingConfigError extends Error {
   readonly variable: string;
 
@@ -82,6 +87,31 @@ export function readDatabaseConfig(
   assertServerSide();
 
   return { url: required(source, 'DATABASE_URL') };
+}
+
+export function readRateLimitStoreConfig(
+  source: EnvSource = process.env,
+): RateLimitStoreConfig {
+  assertServerSide();
+
+  return {
+    url: required(source, 'UPSTASH_REDIS_REST_URL'),
+    token: required(source, 'UPSTASH_REDIS_REST_TOKEN'),
+  };
+}
+
+/**
+ * True when abuse limits have somewhere shared to count. Without it they are
+ * counted per serverless instance, which on a platform that starts a new one
+ * per request means they are not counted at all.
+ */
+export function hasRateLimitStoreConfig(
+  source: EnvSource = process.env,
+): boolean {
+  return Boolean(
+    source.UPSTASH_REDIS_REST_URL?.trim() &&
+      source.UPSTASH_REDIS_REST_TOKEN?.trim(),
+  );
 }
 
 /** True when email can actually be delivered rather than only recorded. */

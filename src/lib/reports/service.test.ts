@@ -713,3 +713,92 @@ describe('moderation', () => {
     },
   );
 });
+
+describe('flag', () => {
+  async function publishedReport(): Promise<string> {
+    await service().submit(submission(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    const outcome = await service().verify(url.searchParams.get('token')!);
+    return outcome.status === 'published' ? outcome.reportId : '';
+  }
+
+  it('records a reader objection without any verified address', async () => {
+    const id = await publishedReport();
+
+    await expect(
+      service().flag(id, 'inaccurate', { ipHash: 'reader-1' }),
+    ).resolves.toMatchObject({ status: 'recorded', flags: 1, hidden: false });
+  });
+
+  it('leaves the report on the map for a single objection', async () => {
+    const id = await publishedReport();
+    await service().flag(id, 'inaccurate', { ipHash: 'reader-1' });
+
+    expect((await repository.findById(id))!.status).toBe('published');
+  });
+
+  it('hides it once three different readers object', async () => {
+    const id = await publishedReport();
+    const subject = service();
+
+    await subject.flag(id, 'inaccurate', { ipHash: 'reader-1' });
+    await subject.flag(id, 'abusive', { ipHash: 'reader-2' });
+    const third = await subject.flag(id, 'spam', { ipHash: 'reader-3' });
+
+    expect(third).toMatchObject({ hidden: true });
+    expect((await repository.findById(id))!.status).toBe('held_for_review');
+  });
+
+  it('counts one machine once, however often it presses', async () => {
+    const id = await publishedReport();
+    const subject = service();
+
+    for (let i = 0; i < 5; i += 1) {
+      await subject.flag(id, 'spam', { ipHash: 'the-same-reader' });
+    }
+
+    expect((await repository.findById(id))!.flagCount).toBe(1);
+    expect((await repository.findById(id))!.status).toBe('published');
+  });
+
+  it('does not treat a repeated press as a failure', async () => {
+    const id = await publishedReport();
+    const subject = service();
+
+    await subject.flag(id, 'spam', { ipHash: 'reader-1' });
+
+    await expect(
+      subject.flag(id, 'spam', { ipHash: 'reader-1' }),
+    ).resolves.toMatchObject({ status: 'recorded' });
+  });
+
+  it('reports an unknown report rather than throwing', async () => {
+    await expect(
+      service().flag('00000000-0000-4000-8000-000000000000', 'spam', {
+        ipHash: 'reader-1',
+      }),
+    ).resolves.toEqual({ status: 'not_found' });
+  });
+
+  it('refuses to flag something that was never published', async () => {
+    await service().submit(submission(), { ipHash: 'ip1' });
+    const [draft] = repository.all();
+
+    await expect(
+      service().flag(draft.id, 'spam', { ipHash: 'reader-1' }),
+    ).resolves.toEqual({ status: 'not_found' });
+  });
+
+  it('stops one machine flagging the whole map', async () => {
+    const subject = service();
+    const id = await publishedReport();
+
+    for (let i = 0; i < 20; i += 1) {
+      await subject.flag(id, 'spam', { ipHash: 'busy-reader' });
+    }
+
+    await expect(
+      subject.flag(id, 'spam', { ipHash: 'busy-reader' }),
+    ).resolves.toMatchObject({ status: 'rate_limited' });
+  });
+});

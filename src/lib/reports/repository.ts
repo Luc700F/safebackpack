@@ -9,6 +9,7 @@
 import type { Coordinates } from '../geo/coordinates';
 import type { AnonymisedReport } from './anonymisation';
 import type { Confirmation } from './confirmations';
+import type { FlagReason } from './flags';
 import type { ScreeningDecision } from '../moderation/screening';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
@@ -131,6 +132,21 @@ export interface ReportRepository {
 
   /** Every confirmation on a report, so one person can be counted once. */
   findConfirmations(reportId: string): Promise<Confirmation[]>;
+
+  /**
+   * Records a reader's objection and returns how many the report now has.
+   * A second flag from the same machine changes nothing and is not an error:
+   * pressing a button twice should not look like a failure.
+   */
+  addFlag(input: {
+    reportId: string;
+    reason: FlagReason;
+    reporterIpHash: string;
+    createdAt: Date;
+  }): Promise<number>;
+
+  /** Takes a report off the map after enough readers objected. */
+  hideAfterFlags(reportId: string): Promise<void>;
 
   /**
    * Records one confirmation. Throws if this person already confirmed this

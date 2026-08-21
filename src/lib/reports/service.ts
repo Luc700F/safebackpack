@@ -17,6 +17,7 @@ import type { CountryLocator } from '../geo/country-locator';
 import { fuzzCoordinates } from '../geo/coordinates';
 import {
   CONFIRMATIONS_PER_PERSON_PER_DAY,
+  FLAGS_PER_IP_PER_DAY,
   REPORTS_PER_EMAIL_PER_DAY,
   REPORTS_PER_IP_PER_DAY,
 } from '../security/rate-limit';
@@ -41,6 +42,7 @@ import {
   canConfirm,
   summarise,
 } from './confirmations';
+import { type FlagReason, shouldHide } from './flags';
 import { type PublicReport, toPublicReport } from './public-report';
 import type { ReportRepository, StoredReport } from './repository';
 import { type SubmissionErrors, validateSubmission } from './submission';
@@ -100,6 +102,11 @@ export type ConfirmOutcome =
 export type ModerationOutcome =
   | { status: 'done' }
   | { status: 'not_found' };
+
+export type FlagOutcome =
+  | { status: 'recorded'; flags: number; hidden: boolean }
+  | { status: 'not_found' }
+  | { status: 'rate_limited'; retryAfterMs: number };
 
 export type VerifyOutcome =
   | { status: 'published'; reportId: string; recognitionToken: string }
@@ -388,6 +395,48 @@ export class ReportService {
 
     await this.deps.repository.reject(id);
     return { status: 'done' };
+  }
+
+  /**
+   * Records a reader's objection to a published report.
+   *
+   * No verified address required, unlike a confirmation. A flag is a request
+   * for a person to look, not a vouch — and demanding an account would mean
+   * the people a report is about are the least able to question it.
+   */
+  async flag(
+    reportId: string,
+    reason: FlagReason,
+    context: { ipHash: string },
+  ): Promise<FlagOutcome> {
+    const { repository } = this.deps;
+
+    const limit = await this.deps.rateLimiter.check(
+      `flag:${context.ipHash}`,
+      FLAGS_PER_IP_PER_DAY,
+    );
+    if (!limit.allowed) {
+      return { status: 'rate_limited', retryAfterMs: limit.retryAfterMs };
+    }
+
+    const report = await repository.findById(reportId);
+    if (!report || report.status !== 'published') {
+      return { status: 'not_found' };
+    }
+
+    const flags = await repository.addFlag({
+      reportId,
+      reason,
+      reporterIpHash: context.ipHash,
+      createdAt: this.clock(),
+    });
+
+    const hidden = shouldHide(flags);
+    if (hidden) {
+      await repository.hideAfterFlags(reportId);
+    }
+
+    return { status: 'recorded', flags, hidden };
   }
 
   private isRecognised(

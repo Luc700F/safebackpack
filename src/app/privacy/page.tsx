@@ -72,6 +72,11 @@ export default function PrivacyPage() {
               the very most — your report leaves the map and everything personal
               in it is deleted.
             </li>
+            <li>
+              If you never confirm the link we email you, the report is never
+              published and is deleted outright. Changing your mind by closing
+              the tab leaves nothing behind.
+            </li>
           </ul>
         </section>
 

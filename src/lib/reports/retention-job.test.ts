@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { MemoryReportRepository } from './memory-repository';
 import type { NewReport } from './repository';
 import { runRetention } from './retention-job';
+import { BASE_RETENTION_DAYS } from './retention';
 
 const NOW = new Date('2026-08-19T12:00:00.000Z');
 
@@ -54,6 +55,7 @@ describe('runRetention', () => {
   it('does nothing when there is nothing to do', async () => {
     expect(await runRetention(repository, NOW)).toEqual({
       anonymised: 0,
+      deleted: 0,
       failures: [],
     });
   });
@@ -156,5 +158,92 @@ describe('runRetention', () => {
 
     expect(result.anonymised).toBe(0);
     expect(result.failures).toHaveLength(1);
+  });
+});
+
+describe('reports that were never published', () => {
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const longAgo = new Date(NOW.getTime() - (BASE_RETENTION_DAYS + 1) * MS_PER_DAY);
+  const recently = new Date(NOW.getTime() - MS_PER_DAY);
+
+  it('deletes a draft whose verification link has lapsed', async () => {
+    // Somebody filed a report, thought better of it and closed the tab. The
+    // privacy notice promises their address does not sit here for ever.
+    await repository.create(
+      draft({ verificationExpiresAt: new Date(NOW.getTime() - 1000) }),
+    );
+
+    const result = await runRetention(repository, NOW);
+
+    expect(result.deleted).toBe(1);
+    expect(await repository.findDueForDeletion(NOW, 10)).toEqual([]);
+  });
+
+  it('leaves a draft whose link is still good', async () => {
+    const created = await repository.create(draft());
+
+    const result = await runRetention(repository, NOW);
+
+    expect(result.deleted).toBe(0);
+    expect(await repository.findById(created.id)).not.toBeNull();
+  });
+
+  it('deletes a held report nobody ever reviewed', async () => {
+    // Held is not a filing cabinet. Without this it is one.
+    await repository.create(
+      draft({
+        status: 'held_for_review',
+        screeningDecision: 'hold',
+        verificationExpiresAt: null,
+        createdAt: longAgo,
+      }),
+    );
+
+    expect((await runRetention(repository, NOW)).deleted).toBe(1);
+  });
+
+  it('leaves a held report the queue may still get to', async () => {
+    await repository.create(
+      draft({
+        status: 'held_for_review',
+        screeningDecision: 'hold',
+        verificationExpiresAt: null,
+        createdAt: recently,
+      }),
+    );
+
+    expect((await runRetention(repository, NOW)).deleted).toBe(0);
+  });
+
+  it('deletes a rejected report once its time is up', async () => {
+    await repository.create(
+      draft({
+        status: 'rejected',
+        verificationExpiresAt: null,
+        createdAt: longAgo,
+      }),
+    );
+
+    expect((await runRetention(repository, NOW)).deleted).toBe(1);
+  });
+
+  it('never touches a published report, however old the draft was', async () => {
+    const id = await publishedReport(current, { createdAt: longAgo });
+
+    const result = await runRetention(repository, NOW);
+
+    expect(result.deleted).toBe(0);
+    expect(await repository.findById(id)).not.toBeNull();
+  });
+
+  it('anonymises the expired and deletes the unpublished in one pass', async () => {
+    await publishedReport(expired);
+    await repository.create(
+      draft({ verificationExpiresAt: new Date(NOW.getTime() - 1000) }),
+    );
+
+    const result = await runRetention(repository, NOW);
+
+    expect(result).toEqual({ anonymised: 1, deleted: 1, failures: [] });
   });
 });

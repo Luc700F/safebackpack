@@ -65,6 +65,9 @@ mode is a token swap and needs no component changes.
 - `src/lib/reports/retention.ts` owns how long a report lives: 60 days, or 30
   days from the last confirmation, capped at 90 from publication. Nothing else
   may hard-code those numbers.
+- The nightly pass has two halves. A report that was on the map is anonymised;
+  one that never was — unconfirmed, held and forgotten, or rejected — is
+  deleted outright, because there is nothing public to keep a trace of.
 - `src/lib/reports/archive.ts` produces the anonymous aggregate that survives
   deletion, so annual risk reporting never depends on retaining personal data.
 

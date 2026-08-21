@@ -188,4 +188,22 @@ export interface ReportRepository {
     retained: AnonymisedReport,
     now: Date,
   ): Promise<void>;
+
+  /**
+   * Reports that were never published and never will be.
+   *
+   * Anonymisation is for reports that were on the map: it keeps a countable
+   * trace of something people actually saw. These were seen by nobody, so
+   * there is nothing to keep — only a name, an address and a description that
+   * the privacy notice promises to get rid of.
+   *
+   * Two ways in. A draft whose verification link has lapsed can never be
+   * confirmed. Anything else still unpublished after the base retention period
+   * — held and never reviewed, or rejected — has outlived the span a published
+   * report would have had.
+   */
+  findDueForDeletion(now: Date, limit: number): Promise<StoredReport[]>;
+
+  /** Removes a report and everything hanging off it. Not recoverable. */
+  deleteReport(id: string): Promise<void>;
 }

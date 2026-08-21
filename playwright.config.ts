@@ -35,6 +35,7 @@ export default defineConfig({
       RESEND_API_KEY: '',
       EMAIL_FROM: '',
       RECOGNITION_SECRET: 'end-to-end-test-secret',
+      ADMIN_PASSWORD: 'end-to-end-moderation-password',
       NEXT_PUBLIC_SITE_URL: baseURL,
       // No DATABASE_URL on purpose. A test run must never write to a database
       // anybody relies on — an earlier version passed the developer's own

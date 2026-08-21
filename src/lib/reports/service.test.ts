@@ -597,3 +597,119 @@ describe('screening', () => {
     expect(repository.all()[0].status).toBe('held_for_review');
   });
 });
+
+describe('moderation', () => {
+  function screeningService() {
+    return new ReportService({
+      repository,
+      emailSender,
+      countryLocator: new StaticCountryLocator('TH'),
+      rateLimiter: new RateLimiter(store, () => clock),
+      screener: new HeuristicScreener(),
+      secret: SECRET,
+      siteUrl: 'https://safebackpack.app',
+      clock: () => clock,
+    });
+  }
+
+  const SUSPECT = submission({
+    description:
+      'A man called Peter Fischer took our money outside the station and never came back with the tickets.',
+  }) as Record<string, unknown>;
+
+  async function heldReport(): Promise<string> {
+    const subject = screeningService();
+    await subject.submit(SUSPECT, { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    await subject.verify(url.searchParams.get('token')!);
+    return repository.all()[0].id;
+  }
+
+  it('lists what is waiting to be looked at', async () => {
+    const id = await heldReport();
+
+    const queue = await screeningService().listHeldForReview();
+
+    expect(queue.map((report) => report.id)).toEqual([id]);
+  });
+
+  it('shows the moderator what the screener objected to', async () => {
+    await heldReport();
+
+    const [report] = await screeningService().listHeldForReview();
+
+    expect(report.screeningReasons).toContain('appears to name a person');
+    expect(report.description).toContain('Peter Fischer');
+  });
+
+  it('leaves published reports out of the queue', async () => {
+    const subject = screeningService();
+    await subject.submit(submission(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    await subject.verify(url.searchParams.get('token')!);
+
+    expect(await subject.listHeldForReview()).toEqual([]);
+  });
+
+  it('puts an approved report on the map, screening verdict notwithstanding', async () => {
+    const id = await heldReport();
+
+    await expect(screeningService().approveHeld(id)).resolves.toEqual({
+      status: 'done',
+    });
+
+    const report = (await repository.findById(id))!;
+    expect(report.status).toBe('published');
+    expect(report.publicPosition).not.toBeNull();
+    expect(report.expiresAt).not.toBeNull();
+  });
+
+  it('blurs the position of an approved report like any other', async () => {
+    const id = await heldReport();
+    await screeningService().approveHeld(id);
+
+    const report = (await repository.findById(id))!;
+    expect(report.publicPosition).not.toEqual(report.position);
+  });
+
+  it('takes a rejected report out of the queue for good', async () => {
+    const id = await heldReport();
+
+    await expect(screeningService().rejectHeld(id)).resolves.toEqual({
+      status: 'done',
+    });
+
+    expect((await repository.findById(id))!.status).toBe('rejected');
+    expect(await screeningService().listHeldForReview()).toEqual([]);
+  });
+
+  it('keeps a rejected report off the map', async () => {
+    const id = await heldReport();
+    await screeningService().rejectHeld(id);
+
+    const visible = await screeningService().listPublished({ window: '90d' });
+    expect(visible.reports).toEqual([]);
+  });
+
+  it.each([['approveHeld'], ['rejectHeld']] as const)(
+    '%s reports an unknown report rather than throwing',
+    async (method) => {
+      await expect(
+        screeningService()[method]('00000000-0000-4000-8000-000000000000'),
+      ).resolves.toEqual({ status: 'not_found' });
+    },
+  );
+
+  it.each([['approveHeld'], ['rejectHeld']] as const)(
+    '%s refuses a report that is not in the queue',
+    async (method) => {
+      const subject = screeningService();
+      await subject.submit(submission(), { ipHash: 'ip1' });
+      const draft = repository.all()[0];
+
+      await expect(subject[method](draft.id)).resolves.toEqual({
+        status: 'not_found',
+      });
+    },
+  );
+});

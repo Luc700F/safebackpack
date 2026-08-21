@@ -53,6 +53,21 @@ export const PLACE_SEARCHES_PER_IP_PER_MINUTE: RateLimitRule = {
   windowMs: 60 * 1000,
 };
 
+/**
+ * Moderation sign-in attempts per network address per hour.
+ *
+ * Enough headroom for one person with a typo on two devices, and nowhere near
+ * enough to guess a password of any length: twenty-five tries an hour against
+ * even a short passphrase is a wait measured in centuries. The first value
+ * tried was ten, which the end-to-end suite exhausted on its own — a limit
+ * that trips on ordinary use gets raised, and a limit that trips on guessing
+ * is doing its job.
+ */
+export const ADMIN_SIGN_IN_PER_IP_PER_HOUR: RateLimitRule = {
+  limit: 25,
+  windowMs: 60 * 60 * 1000,
+};
+
 /** Verification emails one address may trigger per hour. */
 export const VERIFICATIONS_PER_EMAIL_PER_HOUR: RateLimitRule = {
   limit: 5,

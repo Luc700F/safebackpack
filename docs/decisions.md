@@ -120,6 +120,7 @@ together, which is a switch rather than a change to the code.
 | Map tiles | **open — see §7** | | |
 | Transactional email | Resend | 3k/mo | Paid plan |
 | Rate limiting | Upstash Redis | free tier | Paid plan |
+| Moderation | One password, `/admin` | — | — |
 | Error monitoring | Sentry | free tier | Paid plan |
 
 Country assignment is derived **server-side in PostGIS**, by a point-in-polygon
@@ -138,7 +139,18 @@ static test implementation.
 2. Clean reports go live immediately.
 3. Suspicious reports enter an admin review queue instead.
 4. Readers can flag any live report; three flags auto-hide it pending review.
-5. An admin area (login plus 2FA — the only account in the system) works the queue.
+5. The operator works the queue at `/admin`.
+
+Moderation is one password in the environment, exchanged for a signed session
+that lasts a day. Not an account system: there is exactly one person who
+moderates, and user accounts to serve one person would be a great deal of
+surface area for no benefit. Sign-in attempts are capped at 25 per network
+address per hour — room for a typo on two devices, nowhere near enough to
+guess.
+
+A held report is invisible to everyone, the operator included, until the queue
+is worked. That makes an untouched queue the same as throwing reports away,
+which is why the screening rules are deliberately narrow.
 
 Rationale: pre-moderating everything does not scale for a single operator; pure
 post-moderation carries too much legal and abuse risk.

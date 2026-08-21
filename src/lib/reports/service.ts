@@ -97,6 +97,10 @@ export type ConfirmOutcome =
   | { status: 'refused'; reason: ConfirmationRefusal }
   | { status: 'rate_limited'; retryAfterMs: number };
 
+export type ModerationOutcome =
+  | { status: 'done' }
+  | { status: 'not_found' };
+
 export type VerifyOutcome =
   | { status: 'published'; reportId: string; recognitionToken: string }
   | { status: 'invalid_token' }
@@ -353,6 +357,39 @@ export class ReportService {
     };
   }
 
+  /**
+   * The moderation queue.
+   *
+   * Returns stored reports rather than the public shape, because a moderator
+   * needs to see what the screener objected to and the reporter's own words
+   * before deciding — that is the entire point of the queue.
+   */
+  async listHeldForReview(limit = 100): Promise<StoredReport[]> {
+    return this.deps.repository.findHeldForReview(limit);
+  }
+
+  /** A moderator has looked and decided the report belongs on the map. */
+  async approveHeld(id: string): Promise<ModerationOutcome> {
+    const report = await this.deps.repository.findById(id);
+    if (!report || report.status !== 'held_for_review') {
+      return { status: 'not_found' };
+    }
+
+    await this.publish(id, this.clock(), { overrideScreening: true });
+    return { status: 'done' };
+  }
+
+  /** A moderator has looked and decided it does not. */
+  async rejectHeld(id: string): Promise<ModerationOutcome> {
+    const report = await this.deps.repository.findById(id);
+    if (!report || report.status !== 'held_for_review') {
+      return { status: 'not_found' };
+    }
+
+    await this.deps.repository.reject(id);
+    return { status: 'done' };
+  }
+
   private isRecognised(
     token: string | null | undefined,
     emailHash: string,
@@ -368,14 +405,19 @@ export class ReportService {
     return recognition?.emailHash === emailHash;
   }
 
-  private async publish(id: string, now: Date): Promise<void> {
+  private async publish(
+    id: string,
+    now: Date,
+    options: { overrideScreening?: boolean } = {},
+  ): Promise<void> {
     const report = await this.deps.repository.findById(id);
     if (!report?.position) {
       throw new Error(`No such report to publish: ${id}`);
     }
 
-    // A confirmed email does not override the screening. Held means held.
-    if (report.screeningDecision === 'hold') {
+    // A confirmed email does not override the screening. Held means held —
+    // unless a moderator has looked at it and said otherwise.
+    if (report.screeningDecision === 'hold' && !options.overrideScreening) {
       await this.deps.repository.holdForReview(id);
       return;
     }

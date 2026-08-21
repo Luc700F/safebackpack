@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { utcCalendarDate } from './incident-date';
 import {
   DESCRIPTION_MAX_LENGTH,
   DESCRIPTION_MIN_LENGTH,
@@ -15,6 +16,7 @@ function submission(overrides: Record<string, unknown> = {}): unknown {
     categoryId: 'theft',
     latitude: 13.7563,
     longitude: 100.5018,
+    occurredOn: utcCalendarDate(new Date()),
     timeOfDay: 'night',
     reporterFirstName: 'Luca',
     homeCountry: 'CH',
@@ -23,6 +25,50 @@ function submission(overrides: Record<string, unknown> = {}): unknown {
     ...overrides,
   };
 }
+
+const CLOCK = new Date('2026-08-21T12:00:00.000Z');
+
+describe('the day it happened', () => {
+  it('accepts today', () => {
+    expect(
+      validateSubmission(submission({ occurredOn: '2026-08-21' }), CLOCK).ok,
+    ).toBe(true);
+  });
+
+  it('accepts a report filed a few days late', () => {
+    expect(
+      validateSubmission(submission({ occurredOn: '2026-08-14' }), CLOCK).ok,
+    ).toBe(true);
+  });
+
+  it('refuses a day older than the map will ever show', () => {
+    const result = validateSubmission(
+      submission({ occurredOn: '2026-01-01' }),
+      CLOCK,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.ok || result.errors.occurredOn).toBeTruthy();
+  });
+
+  it('refuses a day in the future', () => {
+    expect(
+      validateSubmission(submission({ occurredOn: '2026-09-01' }), CLOCK).ok,
+    ).toBe(false);
+  });
+
+  it.each([
+    ['a day that does not exist', '2026-02-30'],
+    ['a timestamp', '2026-08-21T10:00:00Z'],
+    ['empty', ''],
+    ['missing', undefined],
+    ['a number', 20260821],
+  ])('refuses %s', (_case, value) => {
+    expect(
+      validateSubmission(submission({ occurredOn: value }), CLOCK).ok,
+    ).toBe(false);
+  });
+});
 
 describe('validateSubmission', () => {
   it('accepts a well-formed report', () => {

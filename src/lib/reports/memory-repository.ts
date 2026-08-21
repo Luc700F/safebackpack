@@ -91,13 +91,11 @@ export class MemoryReportRepository implements ReportRepository {
         (report) =>
           report.status === 'published' &&
           report.publishedAt !== null &&
-          report.publishedAt.getTime() >= query.publishedSince.getTime() &&
+          report.occurredAt.getTime() >= query.occurredSince.getTime() &&
           (categories.size === 0 || categories.has(report.categoryId)) &&
           (!query.countryCode || report.countryCode === query.countryCode),
       )
-      .sort(
-        (a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0),
-      )
+      .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
       .slice(0, query.limit)
       .map((report) => ({ ...report }));
   }

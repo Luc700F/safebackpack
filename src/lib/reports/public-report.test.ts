@@ -132,3 +132,22 @@ describe('toPublicReport', () => {
     );
   });
 });
+
+describe('the day it happened', () => {
+  it('is published as a calendar date, not a timestamp', () => {
+    const report = toPublicReport(
+      stored({ occurredAt: new Date('2026-08-14T22:30:00.000Z') }),
+    );
+
+    expect(report.occurredOn).toBe('2026-08-14');
+  });
+
+  it('can differ from the day the report was published', () => {
+    const report = toPublicReport(
+      stored({ occurredAt: new Date('2026-08-01T00:00:00.000Z') }),
+    );
+
+    expect(report.occurredOn).toBe('2026-08-01');
+    expect(report.publishedAt.slice(0, 10)).toBe('2026-08-19');
+  });
+});

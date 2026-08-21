@@ -225,10 +225,10 @@ export class PostgresReportRepository implements ReportRepository {
         retained_month, cell_latitude, cell_longitude, anonymised_at
       from reports
       where status = 'published'
-        and published_at >= ${query.publishedSince}
+        and occurred_at >= ${query.occurredSince}
         ${categories ? sql`and category in ${sql(categories)}` : sql``}
         ${query.countryCode ? sql`and country_code = ${query.countryCode}` : sql``}
-      order by published_at desc
+      order by occurred_at desc
       limit ${query.limit}
     `;
 

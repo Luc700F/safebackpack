@@ -1,6 +1,10 @@
 /**
  * "How recent?" filter for the map and the list view.
  *
+ * The window measures the day an incident happened, not the day it reached the
+ * site. Those differ only when a reporter dates a report back, and a visitor
+ * asking "what happened this week" means the incidents, not the paperwork.
+ *
  * Windows are expressed in whole days rather than calendar months so that the
  * result never depends on which month the visitor happens to be looking at.
  * The widest window matches the retention ceiling, so "past 3 months" is
@@ -45,7 +49,7 @@ export function parseAgeWindow(value: unknown): AgeWindowId {
   return isAgeWindowId(value) ? value : DEFAULT_AGE_WINDOW;
 }
 
-/** The oldest publication timestamp still included by the given window. */
+/** The oldest incident date still included by the given window. */
 export function ageWindowStart(id: AgeWindowId, now: Date): Date {
   const window = WINDOWS_BY_ID.get(id);
   if (!window) {
@@ -56,10 +60,12 @@ export function ageWindowStart(id: AgeWindowId, now: Date): Date {
 }
 
 export function isWithinAgeWindow(
-  publishedAt: Date,
+  occurredAt: Date,
   id: AgeWindowId,
   now: Date,
 ): boolean {
   const start = ageWindowStart(id, now);
-  return publishedAt.getTime() >= start.getTime() && publishedAt.getTime() <= now.getTime();
+  return (
+    occurredAt.getTime() >= start.getTime() && occurredAt.getTime() <= now.getTime()
+  );
 }

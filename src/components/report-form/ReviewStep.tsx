@@ -3,6 +3,7 @@
 import { countryName } from '@/lib/geo/countries';
 import { resolveCategoryLabel, type ReportCategoryId } from '@/lib/reports/categories';
 import type { ReportDraft } from '@/lib/reports/draft';
+import { formatIncidentDate } from '@/lib/reports/incident-date';
 import { timeOfDayLabel, type TimeOfDayId } from '@/lib/reports/time-of-day';
 
 import styles from './ReportForm.module.css';
@@ -20,6 +21,7 @@ export function ReviewStep({ draft }: { draft: ReportDraft }) {
         draft.customCategoryLabel,
       ),
     },
+    { term: 'Day', value: formatIncidentDate(draft.occurredOn) },
     { term: 'Time of day', value: timeOfDayLabel(draft.timeOfDay as TimeOfDayId) },
     { term: 'What happened', value: draft.description },
     {

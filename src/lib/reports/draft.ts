@@ -25,7 +25,13 @@ export const STEP_LABELS: Record<ReportStep, string> = {
 };
 
 const STEP_FIELDS: Record<ReportStep, readonly (keyof SubmissionErrors)[]> = {
-  incident: ['categoryId', 'customCategoryLabel', 'description', 'timeOfDay'],
+  incident: [
+    'categoryId',
+    'customCategoryLabel',
+    'occurredOn',
+    'timeOfDay',
+    'description',
+  ],
   location: ['latitude', 'longitude'],
   reporter: [
     'reporterFirstName',
@@ -41,6 +47,8 @@ export interface ReportDraft {
   categoryId: string;
   customCategoryLabel: string;
   description: string;
+  /** `YYYY-MM-DD`. Empty until the form fills in today — see `newDraft`. */
+  occurredOn: string;
   timeOfDay: string;
   latitude: string;
   longitude: string;
@@ -54,6 +62,7 @@ export const EMPTY_DRAFT: ReportDraft = {
   categoryId: '',
   customCategoryLabel: '',
   description: '',
+  occurredOn: '',
   timeOfDay: '',
   latitude: '',
   longitude: '',
@@ -73,6 +82,7 @@ export function draftToSubmission(draft: ReportDraft): Record<string, unknown> {
       ? { customCategoryLabel: draft.customCategoryLabel }
       : {}),
     description: draft.description,
+    occurredOn: draft.occurredOn,
     timeOfDay: draft.timeOfDay,
     latitude: toNumber(draft.latitude),
     longitude: toNumber(draft.longitude),
@@ -95,8 +105,11 @@ function toNumber(value: string): number | string {
   return Number.isFinite(parsed) ? parsed : trimmed;
 }
 
-export function validateDraft(draft: ReportDraft): SubmissionErrors {
-  const result = validateSubmission(draftToSubmission(draft));
+export function validateDraft(
+  draft: ReportDraft,
+  now: Date = new Date(),
+): SubmissionErrors {
+  const result = validateSubmission(draftToSubmission(draft), now);
   return result.ok ? {} : result.errors;
 }
 
@@ -116,8 +129,12 @@ export function errorsForStep(
 }
 
 /** Whether the step in view has been filled in well enough to move on. */
-export function isStepComplete(draft: ReportDraft, step: ReportStep): boolean {
-  return Object.keys(errorsForStep(validateDraft(draft), step)).length === 0;
+export function isStepComplete(
+  draft: ReportDraft,
+  step: ReportStep,
+  now: Date = new Date(),
+): boolean {
+  return Object.keys(errorsForStep(validateDraft(draft, now), step)).length === 0;
 }
 
 export function nextStep(step: ReportStep): ReportStep {

@@ -51,16 +51,17 @@ mode is a token swap and needs no component changes.
 3. They verify their email address; the report stays a draft until they do.
 4. Automatic screening checks text and photos.
 5. Clean reports publish immediately; suspicious ones enter the moderation queue.
-6. The report is visible for six months.
+6. The report is visible for 60 days, longer if travellers confirm it.
 7. A nightly job folds it into an anonymous aggregate and hard-deletes it.
 
 ## Time and retention
 
-- `publishedAt` is the single timestamp a report carries: submission time is
-  treated as incident time.
-- The schema nevertheless keeps `occurredAt` as its own column, defaulting to
-  `publishedAt`. If we later let reporters backdate an incident, that is a form
-  change rather than a migration.
+- A report carries two dates that mean different things. `occurredAt` is the day
+  it happened, given by the reporter and defaulting to today; `publishedAt` is
+  when it went on the map. They are the same for almost every report.
+- The map's "how recent" filter reads `occurredAt`, so a backdated report is not
+  presented as news. Retention reads `publishedAt`, so backdating neither buys
+  nor costs a report time. `src/lib/reports/incident-date.ts` owns the bounds.
 - `src/lib/reports/retention.ts` owns how long a report lives: 60 days, or 30
   days from the last confirmation, capped at 90 from publication. Nothing else
   may hard-code those numbers.

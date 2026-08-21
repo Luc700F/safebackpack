@@ -216,7 +216,7 @@ export function describeReportRepository(
         const id = await publish({});
 
         const found = await repository.findPublished({
-          publishedSince: since,
+          occurredSince: since,
           limit: 10,
         });
 
@@ -227,15 +227,26 @@ export function describeReportRepository(
         await repository.create(draft());
 
         expect(
-          await repository.findPublished({ publishedSince: since, limit: 10 }),
+          await repository.findPublished({ occurredSince: since, limit: 10 }),
         ).toEqual([]);
       });
 
-      it('leaves out anything published before the window', async () => {
-        await publish({}, older);
+      it('leaves out an incident older than the window', async () => {
+        await publish({ occurredAt: older });
 
         expect(
-          await repository.findPublished({ publishedSince: since, limit: 10 }),
+          await repository.findPublished({ occurredSince: since, limit: 10 }),
+        ).toEqual([]);
+      });
+
+      it('judges by the day it happened, not the day it was published', async () => {
+        // Filed today, about something well before the window. "Past week"
+        // has to mean the past week of incidents, or a month-old robbery
+        // shows up as news because the paperwork is new.
+        await publish({ occurredAt: older }, NOW);
+
+        expect(
+          await repository.findPublished({ occurredSince: since, limit: 10 }),
         ).toEqual([]);
       });
 
@@ -248,7 +259,7 @@ export function describeReportRepository(
         });
 
         const found = await repository.findPublished({
-          publishedSince: since,
+          occurredSince: since,
           categories: ['theft'],
           limit: 10,
         });
@@ -260,7 +271,7 @@ export function describeReportRepository(
         await publish({});
 
         const found = await repository.findPublished({
-          publishedSince: since,
+          occurredSince: since,
           categories: [],
           limit: 10,
         });
@@ -273,25 +284,27 @@ export function describeReportRepository(
 
         expect(
           await repository.findPublished({
-            publishedSince: since,
+            occurredSince: since,
             countryCode: 'CH',
             limit: 10,
           }),
         ).toEqual([]);
       });
 
-      it('returns the newest first', async () => {
-        const old = await publish(
-          { reporterEmailHash: '1'.repeat(64), verificationTokenHash: '1'.repeat(64) },
-          new Date(NOW.getTime() - 5000),
-        );
-        const fresh = await publish(
-          { reporterEmailHash: '2'.repeat(64), verificationTokenHash: '2'.repeat(64) },
-          NOW,
-        );
+      it('returns the most recent incident first', async () => {
+        const old = await publish({
+          reporterEmailHash: '1'.repeat(64),
+          verificationTokenHash: '1'.repeat(64),
+          occurredAt: new Date(NOW.getTime() - 5000),
+        });
+        const fresh = await publish({
+          reporterEmailHash: '2'.repeat(64),
+          verificationTokenHash: '2'.repeat(64),
+          occurredAt: NOW,
+        });
 
         const found = await repository.findPublished({
-          publishedSince: since,
+          occurredSince: since,
           limit: 10,
         });
 
@@ -307,7 +320,7 @@ export function describeReportRepository(
         }
 
         expect(
-          await repository.findPublished({ publishedSince: since, limit: 2 }),
+          await repository.findPublished({ occurredSince: since, limit: 2 }),
         ).toHaveLength(2);
       });
 
@@ -315,7 +328,7 @@ export function describeReportRepository(
         await publish({});
 
         const [found] = await repository.findPublished({
-          publishedSince: since,
+          occurredSince: since,
           limit: 10,
         });
 

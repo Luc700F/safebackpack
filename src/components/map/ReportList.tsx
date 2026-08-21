@@ -69,7 +69,7 @@ export function ReportList({
                 )}
               </span>
               <span className={styles.itemWhen}>
-                {formatWhen(report.publishedAt)}
+                {formatWhen(report.occurredOn)}
               </span>
             </span>
 

@@ -172,6 +172,33 @@ of the diff and survives anyone rebuilding the project. `vercel.json` overrides
 the dashboard, which makes the dashboard setting irrelevant rather than merely
 redundant.
 
+### `spatial_ref_sys` is an accepted risk, not a solved one
+
+Decided 2026-09-02, after two attempts that did not work.
+
+Supabase's linter reports `RLS Disabled in Public` on `public.spatial_ref_sys`,
+the PostGIS table of EPSG projection definitions. It cannot be dismissed as
+noise: `anon` and `authenticated` hold DELETE, INSERT, TRUNCATE and UPDATE on
+it, and emptying it stops country lookup with "Cannot find SRID (4326)". Every
+report needs a country, so that stops reporting for everyone. Verified in a
+rolled-back transaction against the live database.
+
+Neither remedy is available to us. Enabling row level security needs the
+table's owner, `supabase_admin`. Revoking the grants needs the role that made
+them, which is also `supabase_admin`, and `set role supabase_admin` is denied.
+Migration 0010 tried the revoke, reported success and changed nothing, because
+a revoke that removes nothing warns rather than fails.
+
+What keeps this off the launch-blocker list is that the attack needs the anon
+key, and this project publishes none: there is no Supabase client, no key in
+the source, and none in the shipped browser code. The exposure is whoever holds
+the key, not the internet.
+
+Closing it properly means asking Supabase to enable RLS on the table or drop
+the write grants. Until that happens the finding stays, with the owner named
+outside this repository — which is a better place for it than a green tick
+nobody checked.
+
 ## 4. Moderation
 
 **Automatic screening, then immediate publication.**

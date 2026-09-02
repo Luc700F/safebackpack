@@ -9,6 +9,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { NewReport, ReportRepository } from './repository';
+import { BASE_RETENTION_DAYS } from './retention';
 
 const NOW = new Date('2026-08-19T12:00:00.000Z');
 
@@ -487,6 +488,115 @@ export function describeReportRepository(
             retained,
             NOW,
           ),
+        ).rejects.toThrow();
+      });
+    });
+
+    describe('deleting what was never published', () => {
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const longAgo = new Date(
+        NOW.getTime() - (BASE_RETENTION_DAYS + 1) * MS_PER_DAY,
+      );
+
+      it('finds a draft whose verification link has lapsed', async () => {
+        const created = await repository.create(
+          draft({ verificationExpiresAt: new Date(NOW.getTime() - 1000) }),
+        );
+
+        const due = await repository.findDueForDeletion(NOW, 10);
+        expect(due.map((report) => report.id)).toEqual([created.id]);
+      });
+
+      it('leaves a draft whose link is still good', async () => {
+        await repository.create(draft());
+
+        expect(await repository.findDueForDeletion(NOW, 10)).toEqual([]);
+      });
+
+      it('finds a held report nobody reviewed in time', async () => {
+        const created = await repository.create(
+          draft({
+            status: 'held_for_review',
+            screeningDecision: 'hold',
+            verificationExpiresAt: null,
+            createdAt: longAgo,
+          }),
+        );
+
+        const due = await repository.findDueForDeletion(NOW, 10);
+        expect(due.map((report) => report.id)).toEqual([created.id]);
+      });
+
+      it('leaves a held report the queue may still reach', async () => {
+        await repository.create(
+          draft({
+            status: 'held_for_review',
+            screeningDecision: 'hold',
+            verificationExpiresAt: null,
+            createdAt: NOW,
+          }),
+        );
+
+        expect(await repository.findDueForDeletion(NOW, 10)).toEqual([]);
+      });
+
+      it('never offers up a published report', async () => {
+        const created = await repository.create(draft({ createdAt: longAgo }));
+        await repository.publish(created.id, {
+          ...publication,
+          publishedAt: NOW,
+        });
+
+        expect(await repository.findDueForDeletion(NOW, 10)).toEqual([]);
+      });
+
+      it('honours the batch size', async () => {
+        for (const suffix of ['1', '2', '3']) {
+          await repository.create(
+            draft({
+              verificationExpiresAt: new Date(NOW.getTime() - 1000),
+              reporterEmailHash: suffix.repeat(64),
+              verificationTokenHash: suffix.repeat(64),
+            }),
+          );
+        }
+
+        expect(await repository.findDueForDeletion(NOW, 2)).toHaveLength(2);
+      });
+
+      it('removes the report for good', async () => {
+        const created = await repository.create(
+          draft({ verificationExpiresAt: new Date(NOW.getTime() - 1000) }),
+        );
+
+        await repository.deleteReport(created.id);
+
+        expect(await repository.findById(created.id)).toBeNull();
+        expect(await repository.findDueForDeletion(NOW, 10)).toEqual([]);
+      });
+
+      it('goes through even when rows hang off it', async () => {
+        // Without `on delete cascade` Postgres refuses the delete outright and
+        // the report stays, personal data and all. Asserting the confirmations
+        // are gone afterwards would prove nothing: they read as empty either
+        // way once the report has no id.
+        const created = await repository.create(draft());
+        await repository.addFlag({
+          reportId: created.id,
+          reason: 'inaccurate',
+          reporterIpHash: 'c'.repeat(64),
+          createdAt: NOW,
+        });
+
+        await expect(
+          repository.deleteReport(created.id),
+        ).resolves.toBeUndefined();
+        expect(await repository.findById(created.id)).toBeNull();
+      });
+
+      it('throws for an unknown report', async () => {
+        await expect(
+          repository.deleteReport('00000000-0000-4000-8000-000000000000'),
         ).rejects.toThrow();
       });
     });

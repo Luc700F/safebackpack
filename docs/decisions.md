@@ -212,6 +212,29 @@ post-moderation carries too much legal and abuse risk.
   store no visitor identifier, so no consent banner is required and the privacy
   notice can still say nothing follows anybody around. Added 2026-08-20.
 
+### What never reached the map is deleted, not archived
+
+Decided 2026-08-21, after checking the live site.
+
+Anonymisation was the only ending a report had, and it only ever ran on reports
+that had an `expiresAt` — which is set at publication. Three states therefore
+never ended at all: a draft nobody confirmed, a report held and never reviewed,
+and a rejected one. Each kept a first name, an encrypted address, an address
+hash, an exact position and a description, indefinitely, while the privacy
+notice told the reporter their data would be gone in two months.
+
+Those are deleted now rather than anonymised. The archive exists to keep a
+countable trace of something people actually saw; nobody saw these, so there is
+nothing to count and only personal data to be rid of.
+
+Two clocks, both already in the system. A draft dies with its verification
+link: once that has lapsed it can never be confirmed, so it goes on the next
+nightly pass. Anything else still unpublished after `BASE_RETENTION_DAYS` has
+had at least the span a published report would have been given.
+
+The uncomfortable part is that this was found by reading the site rather than
+by a test, and the promise had been on the privacy page since it was written.
+
 ### Visibility is earned, not granted
 
 A report lives **60 days**. A confirmation from another traveller keeps it for

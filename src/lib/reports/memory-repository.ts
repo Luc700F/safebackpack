@@ -18,6 +18,9 @@ import type {
   ReportRepository,
   StoredReport,
 } from './repository';
+import { BASE_RETENTION_DAYS } from './retention';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export class MemoryReportRepository implements ReportRepository {
   private readonly reports = new Map<string, StoredReport>();
@@ -270,4 +273,48 @@ export class MemoryReportRepository implements ReportRepository {
     this.confirmations.clear();
     this.flags.clear();
   }
+  async findDueForDeletion(now: Date, limit: number): Promise<StoredReport[]> {
+    return Array.from(this.reports.values())
+      .filter((report) => neverPublished(report) && pastItsWindow(report, now))
+      .slice(0, limit)
+      .map((report) => ({ ...report }));
+  }
+
+  async deleteReport(id: string): Promise<void> {
+    if (!this.reports.delete(id)) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    this.confirmations.delete(id);
+    this.flags.delete(id);
+  }
+
+}
+
+/** Never on the map, and holding personal data that nothing else will clear. */
+function neverPublished(report: StoredReport): boolean {
+  return (
+    report.publishedAt === null &&
+    report.anonymisedAt === null &&
+    (report.status === 'pending_verification' ||
+      report.status === 'held_for_review' ||
+      report.status === 'rejected')
+  );
+}
+
+function pastItsWindow(report: StoredReport, now: Date): boolean {
+  // A draft dies with its link: once that has lapsed nobody can confirm it.
+  if (
+    report.status === 'pending_verification' &&
+    report.verificationExpiresAt !== null
+  ) {
+    return report.verificationExpiresAt.getTime() < now.getTime();
+  }
+
+  // Held and never reviewed, or rejected. Either has now had the same span a
+  // published report would have been given.
+  return (
+    report.createdAt.getTime() + BASE_RETENTION_DAYS * MS_PER_DAY <
+    now.getTime()
+  );
 }

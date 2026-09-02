@@ -26,6 +26,7 @@ import type { FlagReason } from './flags';
 import type { Confirmation, ConfirmationKind } from './confirmations';
 import type { ReportCategoryId } from './categories';
 import type { TimeOfDayId } from './time-of-day';
+import { BASE_RETENTION_DAYS } from './retention';
 
 interface ReportRow {
   id: string;
@@ -445,6 +446,59 @@ export class PostgresReportRepository implements ReportRepository {
     `;
 
     return rows.map((row) => this.toReport(row));
+  }
+
+  async findDueForDeletion(now: Date, limit: number): Promise<StoredReport[]> {
+    // The span a published report would have been given. Anything still
+    // unpublished after it has had at least as long as the map grants.
+    const cutoff = new Date(
+      now.getTime() - BASE_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    const rows = await this.sql<ReportRow[]>`
+      select
+        id, status, category, custom_category_label, description, time_of_day,
+        st_y(position::geometry) as latitude,
+        st_x(position::geometry) as longitude,
+        st_y(public_position::geometry) as public_latitude,
+        st_x(public_position::geometry) as public_longitude,
+        country_code, reporter_first_name, reporter_home_country,
+        publish_anonymously, reporter_email_encrypted, reporter_email_hash,
+        verification_token_hash, verification_expires_at,
+        occurred_at, created_at, published_at, expires_at,
+        flag_count, confirmation_count, last_confirmed_at,
+        screening_decision, screening_reasons,
+        retained_month, cell_latitude, cell_longitude, anonymised_at
+      from reports
+      where published_at is null
+        and anonymised_at is null
+        and status in ('pending_verification', 'held_for_review', 'rejected')
+        and (
+          (
+            status = 'pending_verification'
+            and verification_expires_at is not null
+            and verification_expires_at < ${now}
+          )
+          or created_at < ${cutoff}
+        )
+      order by created_at
+      limit ${limit}
+    `;
+
+    return rows.map((row) => this.toReport(row));
+  }
+
+  async deleteReport(id: string): Promise<void> {
+    if (!isUuid(id)) {
+      throw new Error(`No such report: ${id}`);
+    }
+
+    // Confirmations and flags carry `on delete cascade`, so they go with it.
+    const result = await this.sql`delete from reports where id = ${id}`;
+
+    if (result.count === 0) {
+      throw new Error(`No such report: ${id}`);
+    }
   }
 
   async anonymise(

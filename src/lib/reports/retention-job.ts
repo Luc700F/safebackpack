@@ -1,8 +1,12 @@
 /**
- * The nightly pass that takes expired reports off the map.
+ * The nightly pass that clears reports whose time is up.
  *
- * It anonymises rather than deletes; `anonymisation.ts` says what survives and
- * why. Work is done in batches so a long backlog — after downtime, say — never
+ * Two passes, because two things end differently. A report that was on the map
+ * is anonymised — `anonymisation.ts` says what survives and why — so the
+ * statistics keep a countable trace of something people actually saw. A report
+ * that was never published is deleted outright: nobody ever saw it, so there
+ * is nothing worth counting, only a name and an address the privacy notice
+ * promises to be rid of. Work is done in batches so a long backlog — after downtime, say — never
  * loads an unbounded number of rows into memory at once.
  *
  * Written as a plain function over the repository so it can be tested without
@@ -16,6 +20,8 @@ export const DEFAULT_BATCH_SIZE = 200;
 
 export interface RetentionResult {
   anonymised: number;
+  /** Never-published reports removed outright. */
+  deleted: number;
   /** Reports that could not be processed, with the reason. */
   failures: { id: string; reason: string }[];
 }
@@ -25,7 +31,7 @@ export async function runRetention(
   now: Date = new Date(),
   batchSize: number = DEFAULT_BATCH_SIZE,
 ): Promise<RetentionResult> {
-  const result: RetentionResult = { anonymised: 0, failures: [] };
+  const result: RetentionResult = { anonymised: 0, deleted: 0, failures: [] };
   const seen = new Set<string>();
 
   for (;;) {
@@ -51,7 +57,44 @@ export async function runRetention(
     }
   }
 
+  await deleteNeverPublished(repository, now, batchSize, result);
+
   return result;
+}
+
+/**
+ * Removes what was never on the map: drafts whose verification link lapsed,
+ * and reports held or rejected long enough that a published one would already
+ * have gone. Nothing about them is retained, because nothing about them was
+ * ever public.
+ */
+async function deleteNeverPublished(
+  repository: ReportRepository,
+  now: Date,
+  batchSize: number,
+  result: RetentionResult,
+): Promise<void> {
+  const seen = new Set<string>();
+
+  for (;;) {
+    const due = await repository.findDueForDeletion(now, batchSize);
+    const fresh = due.filter((report) => !seen.has(report.id));
+    if (fresh.length === 0) break;
+
+    for (const report of fresh) {
+      seen.add(report.id);
+
+      try {
+        await repository.deleteReport(report.id);
+        result.deleted += 1;
+      } catch (error) {
+        result.failures.push({
+          id: report.id,
+          reason: error instanceof Error ? error.message : 'unknown error',
+        });
+      }
+    }
+  }
 }
 
 function retainedFrom(report: StoredReport) {

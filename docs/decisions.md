@@ -380,17 +380,45 @@ can be swapped without touching the rest of the app.
 
 ## Open questions
 
-Needed before the map stage:
+The site went public on 2026-09-02 with an empty database, so the two headings
+this section used to have — "before the map stage" and "before public launch" —
+have both been passed. What follows is what is actually left.
 
-- Map provider (§8).
-- Whether heatmap intensity also decays with age, on top of the category weight.
-- The zoom level at which individual reports replace the heatmap.
-- Grid resolution for the anonymous archive — currently 0.5°, roughly 55 km.
+### Deferred, agreed 2026-09-02
+
+Known, decided against fixing before launch, to be picked up in a few weeks.
+
+- **The statistics page computes nothing.** It is honest placeholder text and
+  says so. The data behind it is correct from day one: an anonymised row keeps
+  category, country, month, time of day, grid cell and confirmation count, and
+  the deletion pass cannot touch it because it only takes rows with no
+  publication date. `select left(retained_month,4), country_code, category,
+  count(*) …` already answers the question the page is meant to answer. What is
+  missing is the page.
+- **A date outside the allowed range is reported one round late.** The range
+  check runs only after the schema parse succeeds, so a form with several bad
+  fields shows the date error on the second attempt rather than the first.
+- **`spatial_ref_sys` write grants** — see the section above. With Supabase,
+  not with us.
+- **A lawyer has read neither the privacy notice nor the terms**, and both say
+  so on the page. Article 27 GDPR — whether a Swiss operator aimed at EU
+  travellers needs a representative — is marked open in the code.
+- **Anonymous publication as the default for sensitive categories.** All three
+  external reviews asked for it independently: first name, home country, place
+  and date together can identify somebody, and for a warning about harassment
+  or robbery the name adds nothing. It changes what reporters expect from the
+  form, so it is the operator's call rather than a correction.
+
+### Paired, not independent
+
+- **The buymeacoffee link and Vercel Pro go together.** The Hobby plan forbids
+  commercial use and a donation link is at best a grey area, so the link stays
+  off the site until the plan changes. Adding one without the other is the
+  mistake this note exists to prevent.
+
+### Still genuinely undecided
+
+- Whether heatmap intensity decays with age on top of the category weight.
 - Whether each country gets its own statistics page.
-
-Needed before public launch:
-
-- Legal entity (§2), and a lawyer's review of the legal pages.
-- Whether the project goes commercial (decides Vercel Pro).
 - How the first reports reach an otherwise empty map.
 - Which service screens uploaded photos, once photos are built.

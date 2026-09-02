@@ -11,7 +11,7 @@
  */
 
 import type { Sql } from '../db/client';
-import { open, seal } from '../crypto/secret-box';
+import { seal } from '../crypto/secret-box';
 import type {
   NewReport,
   PublishedReportQuery,

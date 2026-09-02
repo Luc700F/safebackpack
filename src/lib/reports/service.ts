@@ -12,6 +12,7 @@
 
 import type { EmailSender } from '../email/types';
 import type { Screener } from '../moderation/screening';
+import { buildHeldReportEmail } from '../email/templates/moderation';
 import { buildVerificationEmail } from '../email/templates/verification';
 import type { CountryLocator } from '../geo/country-locator';
 import { fuzzCoordinates } from '../geo/coordinates';
@@ -57,6 +58,8 @@ export interface ReportServiceDependencies {
   /** Signs recognition tokens and keys the email hash. */
   secret: string;
   siteUrl: string;
+  /** Where held reports are announced. Nothing is sent when absent. */
+  moderationInbox?: string | null;
   clock?: () => Date;
   random?: () => number;
 }
@@ -469,6 +472,7 @@ export class ReportService {
     // unless a moderator has looked at it and said otherwise.
     if (report.screeningDecision === 'hold' && !options.overrideScreening) {
       await this.deps.repository.holdForReview(id);
+      await this.announceHeldReport(report.screeningReasons);
       return;
     }
 
@@ -479,6 +483,30 @@ export class ReportService {
       // pushes this out later.
       expiresAt: expiresAt(now),
     });
+  }
+
+  /**
+   * Tells the operator a report is waiting. Without this, "held" means invisible
+   * to everyone including the person who is supposed to decide — which turns
+   * the screener into a quiet way of discarding a stranger's report.
+   */
+  private async announceHeldReport(reasons: readonly string[]): Promise<void> {
+    const inbox = this.deps.moderationInbox?.trim();
+    if (!inbox) return;
+
+    try {
+      await this.deps.emailSender.send(
+        buildHeldReportEmail({
+          to: inbox,
+          reasons,
+          queueUrl: new URL('/admin', this.deps.siteUrl).toString(),
+        }),
+      );
+    } catch {
+      // The report is already held, which is the outcome that matters. A
+      // notification that could not be delivered must not turn into an error
+      // for the reporter, who did nothing wrong and is not involved in this.
+    }
   }
 
   private verificationUrl(token: string): string {

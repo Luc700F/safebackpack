@@ -119,9 +119,14 @@ export default function PrivacyPage() {
         <section className={styles.section}>
           <h2 className={styles.heading}>Technical data</h2>
           <p className={styles.text}>
-            Your network address is stored only as an irreversible fingerprint,
-            for at most seven days, to stop one machine flooding the map. It is
-            never linked to your report.
+            Your network address is never stored as itself. It goes through a
+            keyed hash — a one-way function mixed with a secret only this server
+            holds — and only the result is kept, for at most seven days, to stop
+            one machine flooding the map. It is never linked to your report.
+            Without that secret the result cannot be turned back into an
+            address; a plain hash could be, because there are only about four
+            billion IPv4 addresses and a graphics card works through all of
+            them in minutes.
           </p>
           <p className={styles.text}>
             One cookie is set, and only after you confirm an email address: a

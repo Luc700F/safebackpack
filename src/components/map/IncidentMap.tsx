@@ -74,6 +74,14 @@ export function IncidentMap({
     onSelectRef.current = onSelect;
   }, [onSelect]);
 
+  // The map is built once, but the reports arrive whenever the network says
+  // so. A ref lets the `load` handler below read whatever has arrived by the
+  // time it runs, instead of capturing the empty array it was created with.
+  const reportsRef = useRef(reports);
+  useEffect(() => {
+    reportsRef.current = reports;
+  }, [reports]);
+
   useEffect(() => {
     if (!container.current || map.current) return;
 
@@ -97,9 +105,12 @@ export function IncidentMap({
     instance.addControl(new GeolocateControl({ trackUserLocation: false }));
 
     instance.on('load', () => {
+      // Seeded with whatever has arrived rather than with nothing. If the
+      // reports beat the map here — they usually do — the effect below has
+      // already run and found no source to write to.
       instance.addSource(REPORTS_SOURCE, {
         type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
+        data: toFeatureCollection(reportsRef.current, categoryColor),
       });
       instance.addLayer(heatmapLayer());
       instance.addLayer(pointsLayer());
@@ -165,8 +176,13 @@ export function IncidentMap({
       source.setData(toFeatureCollection(reports, categoryColor));
     };
 
-    if (instance.isStyleLoaded()) apply();
-    else instance.once('idle', apply);
+    // Asking whether the *style* has loaded was the wrong question: MapLibre
+    // reports the basemap style ready well before the `load` event that adds
+    // the source these reports go into. On a first visit that made `apply`
+    // find nothing, give up silently, and never run again — the heatmap stayed
+    // empty until a filter change happened to re-run this. Ask about the
+    // source itself, and let the `load` handler seed it otherwise.
+    if (instance.getSource(REPORTS_SOURCE)) apply();
   }, [reports]);
 
   // Bring the open report into view, without yanking the map if it is already
@@ -233,6 +249,19 @@ export function IncidentMap({
               ? 'No reports match these filters'
               : `${reports.length} ${reports.length === 1 ? 'report' : 'reports'}`}
         </p>
+        {/*
+          The most dangerous thing this map can do is look reassuring. An
+          empty area means nobody filed anything, which is not the same as
+          nothing happening — and a traveller reading a blank map as "safe
+          here" is the failure mode with a person on the other end of it. It
+          sits beside the count rather than in a disclaimer page, because that
+          is where the wrong conclusion gets drawn.
+        */}
+        {!loading && (
+          <p className={styles.caveat}>
+            No reports does not mean safe — only that nobody has reported here.
+          </p>
+        )}
       </div>
     </div>
   );

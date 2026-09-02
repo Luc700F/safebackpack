@@ -28,8 +28,12 @@ export class MemoryReportRepository implements ReportRepository {
   private readonly flags = new Map<string, Map<string, FlagReason>>();
 
   async create(report: NewReport): Promise<StoredReport> {
+    // The address goes in and does not come back out — the same shape the
+    // Postgres store has, where it is sealed on the way in and never opened.
+    const { reporterEmail, ...rest } = report;
     const stored: StoredReport = {
-      ...report,
+      ...rest,
+      hasReporterEmail: Boolean(reporterEmail),
       id: randomUUID(),
       publicPosition: null,
       publishedAt: null,
@@ -239,7 +243,7 @@ export class MemoryReportRepository implements ReportRepository {
       status: 'archived',
       description: null,
       reporterFirstName: null,
-      reporterEmail: null,
+      hasReporterEmail: false,
       reporterEmailHash: null,
       position: null,
       publicPosition: null,

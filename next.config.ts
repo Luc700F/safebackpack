@@ -35,6 +35,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+
+  // RFC 9116 puts the file at /.well-known/security.txt. The route generating
+  // it cannot live at that path — the App Router ignores directories starting
+  // with a dot — so it is served from there.
+  async rewrites() {
+    return [
+      { source: '/.well-known/security.txt', destination: '/security.txt' },
+    ];
+  },
 };
 
 export default nextConfig;

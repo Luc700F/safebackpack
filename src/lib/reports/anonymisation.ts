@@ -111,7 +111,7 @@ export function anonymise(report: AnonymisableReport): AnonymisedReport {
 export const CLEARED_FIELDS = [
   'description',
   'reporterFirstName',
-  'reporterEmail',
+  'hasReporterEmail',
   'reporterEmailHash',
   'exactPosition',
 ] as const;

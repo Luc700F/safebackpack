@@ -13,8 +13,10 @@ import {
   hasClassifierConfig,
   hasDatabaseConfig,
   hasEmailConfig,
+  hasModerationInbox,
   hasRateLimitStoreConfig,
   readClassifierApiKey,
+  readModerationInbox,
   readRateLimitStoreConfig,
   readSigningConfig,
 } from './config/env';
@@ -60,6 +62,7 @@ export function getReportService(): ReportService {
     screener: buildScreener(),
     secret: signing.secret,
     siteUrl: signing.siteUrl,
+    moderationInbox: readModerationInbox(),
   });
 
   warnAboutPlaceholders();
@@ -180,6 +183,12 @@ function warnAboutPlaceholders(): void {
 
   if (!hasClassifierConfig()) {
     placeholders.push('reports are screened by patterns only, nothing reads them');
+  }
+
+  if (!hasModerationInbox()) {
+    placeholders.push(
+      'nobody is told when a report is held, so the queue has to be checked by hand',
+    );
   }
 
   if (placeholders.length === 0) return;

@@ -19,7 +19,6 @@ alter table reports enable row level security;
 alter table report_confirmations enable row level security;
 alter table report_flags enable row level security;
 alter table countries enable row level security;
-alter table archive_rows enable row level security;
 alter table schema_migrations enable row level security;
 
 -- Belt as well as braces: PostgREST reaches tables through these two roles, so
@@ -31,11 +30,17 @@ do $$
 begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
     execute 'revoke all on reports, report_confirmations, report_flags,'
-         || ' countries, archive_rows, schema_migrations'
+         || ' countries, schema_migrations'
          || ' from anon, authenticated';
   end if;
 end
 $$;
+
+-- `archive_rows` is deliberately absent: it no longer exists. Migration 0004
+-- dropped it and moved the anonymised summary onto the report row itself. The
+-- Security Advisor's list is the authority on what is actually exposed;
+-- reading `create table` out of the migration history is not, as the first run
+-- of this migration demonstrated.
 
 -- `public.spatial_ref_sys` is left alone. It belongs to the PostGIS extension
 -- rather than to us, holds nothing but the published EPSG projection

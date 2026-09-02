@@ -492,6 +492,61 @@ export function describeReportRepository(
       });
     });
 
+    describe('confirmations', () => {
+      it('records one', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, { ...publication, publishedAt: NOW });
+
+        await repository.addConfirmation({
+          reportId: created.id,
+          confirmerEmailHash: '9'.repeat(64),
+          kind: 'still_valid',
+          createdAt: NOW,
+        });
+
+        const found = await repository.findConfirmations(created.id);
+        expect(found.map((entry) => entry.confirmerEmailHash)).toEqual([
+          '9'.repeat(64),
+        ]);
+      });
+
+      it('refuses the same person twice on one report', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, { ...publication, publishedAt: NOW });
+
+        const vouch = {
+          reportId: created.id,
+          confirmerEmailHash: '8'.repeat(64),
+          kind: 'still_valid' as const,
+          createdAt: NOW,
+        };
+        await repository.addConfirmation(vouch);
+
+        await expect(repository.addConfirmation(vouch)).rejects.toThrow();
+      });
+
+      it('refuses the reporter vouching for their own report', async () => {
+        // Enforced by a database trigger rather than by the service, so a
+        // second caller cannot get round it. That trigger now pins its
+        // search_path, which is why it names public.reports outright: if the
+        // qualification were wrong the check would quietly pass and this test
+        // would be the thing that noticed.
+        const created = await repository.create(
+          draft({ reporterEmailHash: '7'.repeat(64) }),
+        );
+        await repository.publish(created.id, { ...publication, publishedAt: NOW });
+
+        await expect(
+          repository.addConfirmation({
+            reportId: created.id,
+            confirmerEmailHash: '7'.repeat(64),
+            kind: 'still_valid',
+            createdAt: NOW,
+          }),
+        ).rejects.toThrow();
+      });
+    });
+
     describe('deleting what was never published', () => {
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const longAgo = new Date(

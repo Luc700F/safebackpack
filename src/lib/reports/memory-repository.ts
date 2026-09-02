@@ -171,6 +171,18 @@ export class MemoryReportRepository implements ReportRepository {
   async addConfirmation(confirmation: Confirmation): Promise<void> {
     const existing = this.confirmations.get(confirmation.reportId) ?? [];
 
+    // Postgres refuses this with a trigger, and the service refuses it before
+    // either store is asked. Refusing it here too keeps the two stores honest
+    // with each other: without it, local development and the end-to-end suite
+    // would allow something production does not.
+    const report = this.reports.get(confirmation.reportId);
+    if (
+      report &&
+      report.reporterEmailHash === confirmation.confirmerEmailHash
+    ) {
+      throw new Error('A reporter cannot confirm their own report');
+    }
+
     if (
       existing.some(
         (entry) => entry.confirmerEmailHash === confirmation.confirmerEmailHash,

@@ -19,7 +19,7 @@ function stored(overrides: Partial<StoredReport> = {}): StoredReport {
     reporterFirstName: 'Luca',
     reporterHomeCountry: 'CH',
     publishAnonymously: false,
-    reporterEmail: 'traveller@example.com',
+    hasReporterEmail: true,
     reporterEmailHash: 'a'.repeat(64),
     verificationTokenHash: null,
     verificationExpiresAt: null,

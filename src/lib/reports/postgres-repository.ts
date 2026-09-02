@@ -574,9 +574,7 @@ export class PostgresReportRepository implements ReportRepository {
       reporterFirstName: row.reporter_first_name,
       reporterHomeCountry: row.reporter_home_country,
       publishAnonymously: row.publish_anonymously,
-      reporterEmail: row.reporter_email_encrypted
-        ? open(Buffer.from(row.reporter_email_encrypted), this.secret)
-        : '',
+      hasReporterEmail: row.reporter_email_encrypted !== null,
       reporterEmailHash: row.reporter_email_hash,
       verificationTokenHash: row.verification_token_hash,
       verificationExpiresAt: row.verification_expires_at,

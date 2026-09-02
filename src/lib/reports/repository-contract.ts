@@ -454,7 +454,7 @@ export function describeReportRepository(
         const after = await repository.findById(created.id);
         expect(after?.description).toBeNull();
         expect(after?.reporterFirstName).toBeNull();
-        expect(after?.reporterEmail).toBeFalsy();
+        expect(after?.hasReporterEmail).toBe(false);
         expect(after?.reporterEmailHash).toBeNull();
         expect(after?.position).toBeNull();
         expect(after?.publicPosition).toBeNull();

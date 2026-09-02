@@ -166,6 +166,23 @@ export function hasRateLimitStoreConfig(
   );
 }
 
+/**
+ * Where to tell the operator that a report is waiting for review.
+ *
+ * Optional, and its own address rather than reusing `EMAIL_FROM`: the sending
+ * identity and the inbox somebody actually reads are not the same decision,
+ * and `EMAIL_FROM` may carry a display name that is not a deliverable address.
+ */
+export function readModerationInbox(
+  source: EnvSource = process.env,
+): string | null {
+  return source.MODERATION_EMAIL?.trim() || null;
+}
+
+export function hasModerationInbox(source: EnvSource = process.env): boolean {
+  return readModerationInbox(source) !== null;
+}
+
 /** True when email can actually be delivered rather than only recorded. */
 export function hasEmailConfig(source: EnvSource = process.env): boolean {
   return Boolean(source.RESEND_API_KEY?.trim() && source.EMAIL_FROM?.trim());

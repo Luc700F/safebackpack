@@ -12,8 +12,16 @@ import { success } from '@/lib/http/api-result';
 /**
  * The published reports for the map and the list view.
  *
- * Public data, identical for everyone, so it may be cached at the edge for a
- * minute. Nothing here depends on who is asking.
+ * Not cached, deliberately. This is public data identical for everyone, which
+ * is exactly the shape a CDN is for — and it was cached at the edge for a
+ * minute with five more minutes of serving it stale. The effect was that a
+ * reporter who had just published something reloaded the map and did not find
+ * it, which reads as "the site lost my report".
+ *
+ * A safety map whose whole argument is freshness cannot answer with a
+ * five-minute-old picture to save a function call. If the traffic ever makes
+ * that trade worth revisiting, the way back is a short `s-maxage` with no
+ * `stale-while-revalidate`, not this.
  */
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
@@ -29,7 +37,7 @@ export async function GET(request: Request): Promise<Response> {
   return NextResponse.json(result.body, {
     status: result.status,
     headers: {
-      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      'Cache-Control': 'no-store',
     },
   });
 }

@@ -86,7 +86,7 @@ describe('runRetention', () => {
 
     expect(after?.description).toBeNull();
     expect(after?.reporterFirstName).toBeNull();
-    expect(after?.reporterEmail).toBeNull();
+    expect(after?.hasReporterEmail).toBe(false);
     expect(after?.reporterEmailHash).toBeNull();
     expect(after?.position).toBeNull();
     expect(after?.publicPosition).toBeNull();

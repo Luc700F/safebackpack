@@ -558,7 +558,7 @@ describe('confirm', () => {
 });
 
 describe('screening', () => {
-  function screeningService() {
+  function screeningService(overrides: Record<string, unknown> = {}) {
     return new ReportService({
       repository,
       emailSender,
@@ -568,6 +568,7 @@ describe('screening', () => {
       secret: SECRET,
       siteUrl: 'https://safebackpack.app',
       clock: () => clock,
+      ...overrides,
     });
   }
 
@@ -635,7 +636,7 @@ describe('screening', () => {
 });
 
 describe('moderation', () => {
-  function screeningService() {
+  function screeningService(overrides: Record<string, unknown> = {}) {
     return new ReportService({
       repository,
       emailSender,
@@ -645,6 +646,7 @@ describe('moderation', () => {
       secret: SECRET,
       siteUrl: 'https://safebackpack.app',
       clock: () => clock,
+      ...overrides,
     });
   }
 
@@ -661,6 +663,70 @@ describe('moderation', () => {
     await subject.verify(url.searchParams.get('token')!);
     return repository.all()[0].id;
   }
+
+  it('tells the operator a report is waiting for them', async () => {
+    // Without this, "held" means invisible to everyone including the person
+    // who decides — the screener becomes a quiet way of discarding a report.
+    const subject = screeningService({
+      moderationInbox: 'hello@safebackpack.app',
+    });
+    await subject.submit(suspect(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    await subject.verify(url.searchParams.get('token')!);
+
+    const notice = emailSender.sent.find(
+      (message) => message.to === 'hello@safebackpack.app',
+    );
+    expect(notice).toBeDefined();
+    expect(notice!.text).toContain('appears to name a person');
+    expect(notice!.text).toContain('/admin');
+  });
+
+  it('never puts the report itself in that email', async () => {
+    const subject = screeningService({
+      moderationInbox: 'hello@safebackpack.app',
+    });
+    await subject.submit(suspect(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+    await subject.verify(url.searchParams.get('token')!);
+
+    const notice = emailSender.sent.find(
+      (message) => message.to === 'hello@safebackpack.app',
+    );
+    expect(notice!.text).not.toContain('Peter Fischer');
+  });
+
+  it('sends nothing when no inbox is configured', async () => {
+    await heldReport();
+
+    expect(
+      emailSender.sent.some((message) =>
+        message.subject.includes('waiting for review'),
+      ),
+    ).toBe(false);
+  });
+
+  it('holds the report even when the notification cannot be delivered', async () => {
+    const subject = screeningService({ moderationInbox: 'hello@safebackpack.app' });
+    await subject.submit(suspect(), { ipHash: 'ip1' });
+    const url = new URL(/https:\/\/\S+/.exec(emailSender.lastMessage!.text)![0]);
+
+    // The notice fails; the verification mail that came before it did not.
+    const broken = screeningService({
+      moderationInbox: 'hello@safebackpack.app',
+      emailSender: {
+        send: async (message: { to: string }) => {
+          if (message.to === 'hello@safebackpack.app') {
+            throw new Error('mail server down');
+          }
+        },
+      },
+    });
+    await broken.verify(url.searchParams.get('token')!);
+
+    const [report] = repository.all();
+    expect(report.status).toBe('held_for_review');
+  });
 
   it('lists what is waiting to be looked at', async () => {
     const id = await heldReport();

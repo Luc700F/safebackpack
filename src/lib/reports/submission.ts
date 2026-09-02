@@ -20,7 +20,7 @@ import {
 } from './incident-date';
 import { TIMES_OF_DAY } from './time-of-day';
 
-export const DESCRIPTION_MIN_LENGTH = 50;
+export const DESCRIPTION_MIN_LENGTH = 25;
 export const DESCRIPTION_MAX_LENGTH = 2000;
 export const FIRST_NAME_MAX_LENGTH = 40;
 export const CUSTOM_LABEL_MAX_LENGTH = 60;

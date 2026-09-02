@@ -45,7 +45,16 @@ export interface StoredReport {
   reporterHomeCountry: string;
   publishAnonymously: boolean;
 
-  reporterEmail: string | null;
+  /**
+   * Whether an encrypted address is still on the row — never the address.
+   *
+   * Nothing reads a stored address: the verification mail goes out from what
+   * the form submitted, and the hash below is what identifies a reporter
+   * afterwards. Decrypting on every read cost the map its availability, since
+   * one row sealed with a retired key made the whole listing fail, and it put
+   * plaintext addresses in memory for no caller at all.
+   */
+  hasReporterEmail: boolean;
   reporterEmailHash: string | null;
 
   verificationTokenHash: string | null;
@@ -85,6 +94,9 @@ export type NewReport = Omit<
   | 'lastConfirmedAt'
   | 'retained'
   | 'anonymisedAt'
+  // Written, never read back: the row keeps the sealed address, and the store
+  // reports only whether one is still there.
+  | 'hasReporterEmail'
 > & {
   description: string;
   position: Coordinates;

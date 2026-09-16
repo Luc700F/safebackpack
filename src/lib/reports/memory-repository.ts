@@ -34,6 +34,7 @@ export class MemoryReportRepository implements ReportRepository {
     const stored: StoredReport = {
       ...rest,
       hasReporterEmail: Boolean(reporterEmail),
+      retainedCell: null,
       id: randomUUID(),
       publicPosition: null,
       publishedAt: null,
@@ -79,6 +80,10 @@ export class MemoryReportRepository implements ReportRepository {
       ...report,
       status: 'published',
       publicPosition: details.publicPosition,
+      retainedCell: details.retainedCell,
+      // Dropped here, with the cell derived from it recorded in the same
+      // breath. The Postgres store does the same in one statement.
+      position: null,
       publishedAt: details.publishedAt,
       expiresAt: details.expiresAt,
       // A used token must not work twice.

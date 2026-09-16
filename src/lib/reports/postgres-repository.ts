@@ -179,6 +179,12 @@ export class PostgresReportRepository implements ReportRepository {
           ${details.publicPosition.longitude},
           ${details.publicPosition.latitude}
         ), 4326)::geography,
+        cell_latitude = ${details.retainedCell.cellLatitude},
+        cell_longitude = ${details.retainedCell.cellLongitude},
+        -- The exact position goes in the same statement that records the cell
+        -- derived from it. Nothing reads it after this: the map draws the
+        -- blurred one, and the statistics keep the cell.
+        position = null,
         published_at = ${details.publishedAt},
         expires_at = ${details.expiresAt},
         verification_token_hash = null,
@@ -587,6 +593,13 @@ export class PostgresReportRepository implements ReportRepository {
       lastConfirmedAt: row.last_confirmed_at,
       screeningDecision: row.screening_decision,
       screeningReasons: row.screening_reasons ?? [],
+      retainedCell:
+        row.cell_latitude === null || row.cell_longitude === null
+          ? null
+          : {
+              cellLatitude: Number(row.cell_latitude),
+              cellLongitude: Number(row.cell_longitude),
+            },
       retained: this.toRetained(row),
       anonymisedAt: row.anonymised_at,
     };

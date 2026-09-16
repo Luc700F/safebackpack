@@ -34,6 +34,7 @@ import {
   hashToken,
   isTokenExpired,
 } from '../verification/token';
+import { toGridCell } from './anonymisation';
 import { expiresAt } from './retention';
 import { type AgeWindowId, ageWindowStart, parseAgeWindow } from './age-window';
 import { isReportCategoryId, type ReportCategoryId } from './categories';
@@ -478,6 +479,14 @@ export class ReportService {
 
     await this.deps.repository.publish(id, {
       publicPosition: fuzzCoordinates(report.position, this.random),
+      // Worked out here because this is the last moment it can be: the store
+      // drops the exact position in the same statement. Holding that position
+      // for ninety days bought nothing — the map has always drawn the blurred
+      // one — and cost a column worth attacking.
+      retainedCell: toGridCell(
+        report.position.latitude,
+        report.position.longitude,
+      ),
       publishedAt: now,
       // A fresh report carries no confirmations yet; the confirmation flow
       // pushes this out later.

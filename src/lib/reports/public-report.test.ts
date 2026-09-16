@@ -15,6 +15,7 @@ function stored(overrides: Partial<StoredReport> = {}): StoredReport {
     timeOfDay: 'night',
     position: { latitude: 13.7563, longitude: 100.5018 },
     publicPosition: { latitude: 13.757, longitude: 100.502 },
+    retainedCell: { cellLatitude: 13.7, cellLongitude: 100.5 },
     countryCode: 'TH',
     reporterFirstName: 'Luca',
     reporterHomeCountry: 'CH',

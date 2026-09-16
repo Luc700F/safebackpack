@@ -10,6 +10,7 @@ import { RateLimiter } from '../security/rate-limiter';
 import { hashEmail } from '../verification/email-hash';
 import { createRecognitionToken } from '../verification/recognition';
 import { utcCalendarDate } from './incident-date';
+import { toGridCell } from './anonymisation';
 import { MemoryReportRepository } from './memory-repository';
 import { BASE_RETENTION_DAYS } from './retention';
 import { ReportService } from './service';
@@ -278,18 +279,33 @@ describe('verify', () => {
     expect(outcome.status === 'published' && outcome.recognitionToken).toBeTruthy();
   });
 
-  it('publishes a displaced position, never the exact one', async () => {
+  it('publishes a displaced position, and then forgets the exact one', async () => {
     const token = await submitAndTakeToken();
+
+    // Read before verifying: this is the last moment the exact position
+    // exists, which is the whole point of the assertions below.
+    const exact = repository.all()[0].position!;
+
     await service().verify(token);
 
     const [report] = repository.all();
-    expect(report.publicPosition).not.toEqual(report.position);
+    expect(report.position).toBeNull();
+    expect(report.publicPosition).not.toEqual(exact);
     expect(
-      distanceMetres(report.position!, report.publicPosition!),
+      distanceMetres(exact, report.publicPosition!),
     ).toBeLessThanOrEqual(FUZZ_RADIUS_METRES + 1);
-    expect(
-      distanceMetres(report.position!, report.publicPosition!),
-    ).toBeGreaterThan(0);
+    expect(distanceMetres(exact, report.publicPosition!)).toBeGreaterThan(0);
+  });
+
+  it('records the cell the exact position fell into before dropping it', async () => {
+    const token = await submitAndTakeToken();
+    const exact = repository.all()[0].position!;
+    await service().verify(token);
+
+    const [report] = repository.all();
+    expect(report.retainedCell).toEqual(
+      toGridCell(exact.latitude, exact.longitude),
+    );
   });
 
   it('sets the deletion date six months out', async () => {

@@ -6,10 +6,14 @@
  * nobody has thought of yet. A pre-computed summary would fix today's
  * questions in place forever.
  *
- * What is removed: the email address, the reporter's name, the exact position
- * and the free-text description. The description is the most useful field for a
- * human reader and the most likely to name someone — "the man at the hostel on
- * Soi 12" — so it does not survive.
+ * What is removed here: the email address, the reporter's name and the
+ * free-text description. The description is the most useful field for a human
+ * reader and the most likely to name someone — "the man at the hostel on Soi
+ * 12" — so it does not survive.
+ *
+ * The exact position is absent from that list because by now there is none. It
+ * is discarded the moment a report publishes, and the grid cell below is worked
+ * out then — see `ReportService.publish`.
  *
  * What remains carries no link to a person: category, country, a coarse cell,
  * the month, the time of day, and how many travellers confirmed it.
@@ -25,12 +29,21 @@ import type { TimeOfDayId } from './time-of-day';
  */
 export const RETAINED_GRID_DEGREES = 0.1;
 
+/** South-west corner of a grid cell, in degrees. */
+export interface GridCell {
+  cellLatitude: number;
+  cellLongitude: number;
+}
+
 export interface AnonymisableReport {
   categoryId: ReportCategoryId;
   countryCode: string;
   timeOfDayId: TimeOfDayId;
-  latitude: number;
-  longitude: number;
+  /**
+   * The cell worked out when the report published. Passed in rather than
+   * derived, because by now there is no coordinate left to derive it from.
+   */
+  cell: GridCell;
   publishedAt: Date;
   confirmationCount: number;
 }
@@ -60,10 +73,7 @@ export function toMonth(date: Date): string {
  * Rounded to the grid's own precision so floating point noise never splits one
  * cell into two.
  */
-export function toGridCell(
-  latitude: number,
-  longitude: number,
-): { cellLatitude: number; cellLongitude: number } {
+export function toGridCell(latitude: number, longitude: number): GridCell {
   return {
     cellLatitude: snap(latitude),
     cellLongitude: snap(longitude),
@@ -91,10 +101,7 @@ function decimalsOf(step: number): number {
 }
 
 export function anonymise(report: AnonymisableReport): AnonymisedReport {
-  const { cellLatitude, cellLongitude } = toGridCell(
-    report.latitude,
-    report.longitude,
-  );
+  const { cellLatitude, cellLongitude } = report.cell;
 
   return {
     categoryId: report.categoryId,

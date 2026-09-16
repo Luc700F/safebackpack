@@ -45,6 +45,7 @@ function draft(overrides: Partial<NewReport> = {}): NewReport {
 
 const publication = {
   publicPosition: { latitude: 13.757, longitude: 100.502 },
+  retainedCell: { cellLatitude: 13.7, cellLongitude: 100.5 },
   publishedAt: NOW,
   expiresAt: new Date(NOW.getTime() + 90 * 24 * 60 * 60 * 1000),
 };
@@ -174,14 +175,26 @@ export function describeReportRepository(
         ).toBeNull();
       });
 
-      it('leaves the exact position untouched', async () => {
+      it('drops the exact position and keeps the cell instead', async () => {
+        // The reverse of what this asserted until now. Holding the exact
+        // position for the report's whole life bought nothing — the map has
+        // always drawn the blurred one — and left a column worth attacking.
         const created = await repository.create(draft());
+        expect(created.position).not.toBeNull();
+
         const published = await repository.publish(created.id, publication);
 
-        expect(published.position?.latitude).toBeCloseTo(
-          created.position!.latitude,
-          5,
-        );
+        expect(published.position).toBeNull();
+        expect(published.retainedCell).toEqual(publication.retainedCell);
+        expect(published.publicPosition?.latitude).toBeCloseTo(13.757, 5);
+      });
+
+      it('has no exact position left when read back', async () => {
+        const created = await repository.create(draft());
+        await repository.publish(created.id, publication);
+
+        const found = await repository.findById(created.id);
+        expect(found?.position).toBeNull();
       });
 
       it('persists the change rather than only returning it', async () => {

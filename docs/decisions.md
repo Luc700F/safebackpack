@@ -239,6 +239,39 @@ post-moderation carries too much legal and abuse risk.
   store no visitor identifier, so no consent banner is required and the privacy
   notice can still say nothing follows anybody around. Added 2026-08-20.
 
+### The exact position is dropped when a report publishes
+
+Decided 2026-09-16, from a Supabase Security Advisor finding.
+
+The exact coordinate used to sit on the row for the report's whole life. It was
+read exactly twice: once at publication, to compute the blurred position, and
+once at anonymisation, to compute the ~11 km cell. Both of those can happen at
+publication, so it now does — and the coordinate is cleared in the same
+statement that records the cell.
+
+Nothing a visitor sees changes. The map has always drawn `publicPosition`;
+`toPublicReport` has never had a field for the exact one, and there is a test
+saying so. The heatmap's resolution is set by the 100 m blur, not by what is
+stored behind it.
+
+What prompted it: Supabase installs PostGIS into `public` owned by
+`supabase_admin`, which leaves `st_estimatedextent` executable by `anon` — a
+SECURITY DEFINER function reporting a column's approximate bounding box, and
+one that ignores the grants we can revoke. Tried as `anon` against production,
+it answered with a box. With few reports that box is close to being one
+report's location. Revoking EXECUTE has no effect for the same reason the
+`spatial_ref_sys` grants could not be revoked.
+
+So the lever was never the function. A column that does not exist cannot be
+estimated.
+
+Unpublished reports keep their coordinate: they have not been blurred yet, so
+it is still the only copy. Migration 0012 backfilled the cell and cleared the
+position for rows published before the change, snapping in `numeric` rather
+than floating point — 13.7 / 0.1 is 136.99999999999997 in binary and would land
+a point one cell south. Checked against `toGridCell` across boundary, negative
+and negative-zero cases before it ran.
+
 ### What never reached the map is deleted, not archived
 
 Decided 2026-08-21, after checking the live site.

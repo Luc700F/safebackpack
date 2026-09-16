@@ -13,8 +13,7 @@ function report(overrides: Partial<AnonymisableReport> = {}): AnonymisableReport
     categoryId: 'theft',
     countryCode: 'TH',
     timeOfDayId: 'night',
-    latitude: 13.7563,
-    longitude: 100.5018,
+    cell: { cellLatitude: 13.7, cellLongitude: 100.5 },
     publishedAt: new Date('2026-03-14T09:00:00.000Z'),
     confirmationCount: 2,
     ...overrides,
@@ -103,12 +102,18 @@ describe('anonymise', () => {
     }
   });
 
-  it('never reproduces the exact position it was given', () => {
-    const source = report({ latitude: 13.75634, longitude: 100.50187 });
-    const anonymised = anonymise(source);
+  it('is given a cell, never a coordinate to coarsen', () => {
+    // This function used to receive the exact position and snap it. That now
+    // happens when the report publishes, and the exact position is dropped in
+    // the same statement — so by the time anything is anonymised there is no
+    // coordinate left to hand over. `toGridCell` above still guards the
+    // coarsening itself.
+    const anonymised = anonymise(report());
 
-    expect(anonymised.cellLatitude).not.toBe(source.latitude);
-    expect(anonymised.cellLongitude).not.toBe(source.longitude);
+    expect(anonymised.cellLatitude).toBe(13.7);
+    expect(anonymised.cellLongitude).toBe(100.5);
+    expect('latitude' in anonymised).toBe(false);
+    expect('longitude' in anonymised).toBe(false);
   });
 
   it('coarsens the date to a month, losing the day', () => {

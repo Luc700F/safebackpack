@@ -262,8 +262,27 @@ it answered with a box. With few reports that box is close to being one
 report's location. Revoking EXECUTE has no effect for the same reason the
 `spatial_ref_sys` grants could not be revoked.
 
-So the lever was never the function. A column that does not exist cannot be
-estimated.
+So the lever was never the function — but it is not the column either, and the
+original wording here claimed more than the change delivers.
+
+Checked after the migration ran: every published row has a null position, and
+`st_estimatedextent` still answers with the same box it did before. PostGIS
+keeps its own statistics slot, and its analyser returns without writing one when
+a column has no values left to sample — so `ANALYZE` leaves the old slot in
+place. `ALTER COLUMN … SET STATISTICS 0` does not clear it either. Deleting the
+row from `pg_statistic` needs superuser, which the project role is not.
+
+What the box actually describes is the eighteen test reports deleted on 2
+September: nothing live, and nothing about the one real report, which published
+after those statistics were last written. Going forward the slot can only ever
+be refreshed from reports still awaiting verification, because published rows
+have nothing to sample.
+
+What the change did deliver, and it is the larger half: an exact coordinate now
+exists for minutes rather than for sixty to ninety days, and no published report
+holds one at all. A database dump, a compromised application or any read path
+yields nothing. The statistics slot is a residue with a narrow future, and it
+goes on the list for Supabase alongside the grants.
 
 Unpublished reports keep their coordinate: they have not been blurred yet, so
 it is still the only copy. Migration 0012 backfilled the cell and cleared the

@@ -60,10 +60,12 @@ export default function StatisticsPage() {
           <h2 className={styles.heading}>Where the figures come from</h2>
           <p className={styles.text}>
             When a report leaves the map it is not deleted but stripped: the
-            name, the email address, the exact position and the description go,
-            and the category, country, a roughly 11 km grid cell, the month and
-            the time of day stay. Those figures carry no link to a person, which
-            is why they can be kept and counted indefinitely.
+            name, the email address and the description go, and the category,
+            country, a roughly 11 km grid cell, the month and the time of day
+            stay. The exact position is not on that list because it was deleted
+            when the report was published; the cell was worked out then. Those
+            figures carry no link to a person, which is why they can be kept and
+            counted indefinitely.
           </p>
         </section>
 

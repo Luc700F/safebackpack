@@ -98,16 +98,17 @@ async function deleteNeverPublished(
 }
 
 function retainedFrom(report: StoredReport) {
-  if (!report.position || !report.publishedAt) {
-    throw new Error('Report has no position or publication date to retain');
+  if (!report.retainedCell || !report.publishedAt) {
+    throw new Error('Report has no retained cell or publication date');
   }
 
   return anonymise({
     categoryId: report.categoryId,
     countryCode: report.countryCode,
     timeOfDayId: report.timeOfDay,
-    latitude: report.position.latitude,
-    longitude: report.position.longitude,
+    // Not derived from a coordinate: there is none left by now. This was
+    // computed when the report published.
+    cell: report.retainedCell,
     publishedAt: report.publishedAt,
     confirmationCount: report.confirmationCount,
   });

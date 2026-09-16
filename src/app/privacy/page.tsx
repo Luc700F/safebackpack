@@ -65,7 +65,9 @@ export default function PrivacyPage() {
             </li>
             <li>
               The position you pick is blurred by about 100 metres before it is
-              published. The exact one never leaves our server.
+              published, and the exact one is then deleted — not kept until the
+              report expires, deleted the moment it goes on the map. It never
+              leaves our server and does not stay on it either.
             </li>
             <li>
               After two months — longer if others confirm it, three months at
@@ -102,11 +104,12 @@ export default function PrivacyPage() {
         <section className={styles.section}>
           <h2 className={styles.heading}>What happens when it leaves the map</h2>
           <p className={styles.text}>
-            Your report leaves the map and is stripped: the email address, your
-            name, the exact position and the description are deleted. What
-            remains is the category, the country, a roughly 11 km grid cell, the
-            month and the time of day — figures that cannot be traced back to
-            you and that let us publish statistics later.
+            Your report leaves the map and is stripped: the email address,
+            your name and the description are deleted. The exact position is
+            already long gone by then. What remains is the category, the
+            country, a roughly 11 km grid cell, the month and the time of day —
+            figures that cannot be traced back to you and that let us publish
+            statistics later.
           </p>
           <p className={styles.text}>
             A report starts with two months. Each confirmation from another

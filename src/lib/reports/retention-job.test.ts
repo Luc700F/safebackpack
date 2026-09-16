@@ -38,6 +38,7 @@ async function publishedReport(expiresAt: Date, overrides: Partial<NewReport> = 
   const created = await repository.create(draft(overrides));
   await repository.publish(created.id, {
     publicPosition: { latitude: 13.757, longitude: 100.502 },
+    retainedCell: { cellLatitude: 13.7, cellLongitude: 100.5 },
     publishedAt: new Date('2026-05-01T00:00:00.000Z'),
     expiresAt,
   });
@@ -134,14 +135,17 @@ describe('runRetention', () => {
     });
     await publishedReport(expired);
 
-    // A row with no position cannot produce a retained summary.
+    // A row with no retained cell cannot produce a summary. It used to be the
+    // exact position that was missing here; every published row now has none,
+    // and the cell is what the summary is built from.
     const stored = await repository.findById(broken);
     await repository.publish(broken, {
       publicPosition: { latitude: 0, longitude: 0 },
+      retainedCell: { cellLatitude: 0, cellLongitude: 0 },
       publishedAt: stored!.publishedAt!,
       expiresAt: expired,
     });
-    repository.corrupt(broken, { position: null });
+    repository.corrupt(broken, { retainedCell: null });
 
     const result = await runRetention(repository, NOW);
 
@@ -152,7 +156,7 @@ describe('runRetention', () => {
 
   it('stops rather than looping forever on rows it cannot process', async () => {
     const id = await publishedReport(expired);
-    repository.corrupt(id, { position: null });
+    repository.corrupt(id, { retainedCell: null });
 
     const result = await runRetention(repository, NOW, 1);
 

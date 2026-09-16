@@ -7,7 +7,7 @@
  */
 
 import type { Coordinates } from '../geo/coordinates';
-import type { AnonymisedReport } from './anonymisation';
+import type { AnonymisedReport, GridCell } from './anonymisation';
 import type { Confirmation } from './confirmations';
 import type { FlagReason } from './flags';
 import type { ScreeningDecision } from '../moderation/screening';
@@ -79,6 +79,11 @@ export interface StoredReport {
   screeningReasons: string[];
 
   /** What survives anonymisation. Null while the report is still personal. */
+  /**
+   * The coarse cell, kept from publication onwards. Present long before
+   * `retained` below, which only appears once the report has been anonymised.
+   */
+  retainedCell: GridCell | null;
   retained: AnonymisedReport | null;
   anonymisedAt: Date | null;
 }
@@ -92,6 +97,7 @@ export type NewReport = Omit<
   | 'flagCount'
   | 'confirmationCount'
   | 'lastConfirmedAt'
+  | 'retainedCell'
   | 'retained'
   | 'anonymisedAt'
   // Written, never read back: the row keeps the sealed address, and the store
@@ -106,6 +112,12 @@ export type NewReport = Omit<
 
 export interface PublicationDetails {
   publicPosition: Coordinates;
+  /**
+   * The coarse cell the exact position fell into, worked out now because the
+   * exact position is dropped in the same statement. Nothing later can derive
+   * it, which is the point.
+   */
+  retainedCell: GridCell;
   publishedAt: Date;
   expiresAt: Date;
 }

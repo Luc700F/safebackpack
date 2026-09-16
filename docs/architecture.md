@@ -59,6 +59,9 @@ mode is a token swap and needs no component changes.
 - A report carries two dates that mean different things. `occurredAt` is the day
   it happened, given by the reporter and defaulting to today; `publishedAt` is
   when it went on the map. They are the same for almost every report.
+- A published report holds no exact position. It is cleared when the report
+  publishes, in the same statement that records the ~11 km cell derived from
+  it; the map draws the blurred position and always has.
 - The map's "how recent" filter reads `occurredAt`, so a backdated report is not
   presented as news. Retention reads `publishedAt`, so backdating neither buys
   nor costs a report time. `src/lib/reports/incident-date.ts` owns the bounds.
